@@ -1,0 +1,17 @@
+# Local environment and secrets
+.env
+*.env
+!.env.example
+
+# Backend local env
+backend/.env
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc

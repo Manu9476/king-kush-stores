@@ -1,0 +1,31 @@
+# backend/backend/urls.py
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings             # <-- This lets us read your settings file
+from django.conf.urls.static import static   # <-- This lets us serve image files
+from .views import health_check
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/health/', health_check, name='api-health-check'),
+    path('api/products/', include('products.urls')), # Connects your products app
+    path('api/users/', include('users.urls')),
+    path('api/orders/', include('orders.urls')),
+    path('api/chatbot/', include('chatbot.urls')),
+    path('api/careers/', include('careers.urls')),
+    path('api/support/', include('support.urls')),
+    path('api/advertising/', include('advertising.urls')),
+    path('api/promotions/', include('promotions.urls')),
+    path('api/pickup/', include('pickup.urls')),
+    path('api/receipts/', include('receipts.urls')),
+]
+
+handler400 = "core.error_views.bad_request"
+handler403 = "core.error_views.permission_denied"
+handler404 = "core.error_views.page_not_found"
+handler500 = "core.error_views.server_error"
+
+# THE FIX: This explicitly tells Django to serve your image files so the frontend can display them!
+# We only do this when DEBUG is True (for safety)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
