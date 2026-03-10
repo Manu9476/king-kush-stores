@@ -1,6 +1,5 @@
 // frontend/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "../src/context/AuthContext";
@@ -11,8 +10,6 @@ import Footer from "../src/components/Footer";
 import ChatbotWidget from "../src/components/ChatbotWidget"; // Import ChatbotWidget
 import ActivityTracker from "../src/components/ActivityTracker";
 import AdSlot from "../src/components/ads/AdSlot";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "King-Kush Stores",
@@ -26,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gray-50 flex flex-col min-h-screen`}>
+      <body className="bg-gray-50 flex flex-col min-h-screen">
         {/* Wrap everything inside your State Providers */}
         <ChatbotProvider>
           <AuthProvider>

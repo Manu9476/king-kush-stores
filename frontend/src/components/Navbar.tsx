@@ -65,25 +65,27 @@ export default function Navbar() {
     const normalizedQuery = normalizeSearch(query);
     if (!normalizedQuery || searchProducts.length === 0) return [];
 
-    const productSuggestions: SearchSuggestion[] = searchProducts
-      .map((entry, index) => {
-        const title = normalizeSearch(entry.title);
-        if (!title) return null;
-        let score = 0;
-        if (title === normalizedQuery) score = 130;
-        else if (title.startsWith(normalizedQuery)) score = 115;
-        else if (title.includes(normalizedQuery)) score = 95;
-        if (score === 0) return null;
-        return {
-          id: `product-${index}-${entry.title}`,
-          kind: "product" as const,
-          label: entry.title,
-          query: entry.title,
-          score,
-        };
-      })
-      .filter((entry): entry is SearchSuggestion => Boolean(entry))
-      .slice(0, 6);
+    const productSuggestions: SearchSuggestion[] = [];
+    for (let index = 0; index < searchProducts.length; index += 1) {
+      const entry = searchProducts[index];
+      const title = normalizeSearch(entry.title);
+      if (!title) continue;
+
+      let score = 0;
+      if (title === normalizedQuery) score = 130;
+      else if (title.startsWith(normalizedQuery)) score = 115;
+      else if (title.includes(normalizedQuery)) score = 95;
+      if (score === 0) continue;
+
+      productSuggestions.push({
+        id: `product-${index}-${entry.title}`,
+        kind: "product",
+        label: entry.title,
+        query: entry.title,
+        score,
+      });
+      if (productSuggestions.length >= 6) break;
+    }
 
     const categoryScoreMap = new Map<string, number>();
     const vendorScoreMap = new Map<string, number>();
