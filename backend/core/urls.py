@@ -3,9 +3,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings             # <-- This lets us read your settings file
 from django.conf.urls.static import static   # <-- This lets us serve image files
-from .views import health_check
+from .views import api_root, health_check
 
 urlpatterns = [
+    path('', api_root, name='api-root'),
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='api-health-check'),
     path('api/products/', include('products.urls')), # Connects your products app

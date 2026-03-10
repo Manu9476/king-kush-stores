@@ -7,6 +7,23 @@ from rest_framework.response import Response
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+def api_root(request):
+    return Response(
+        {
+            "service": "king-kush-api",
+            "status": "online",
+            "message": "Backend is running.",
+            "endpoints": {
+                "health": "/api/health/",
+                "products": "/api/products/",
+                "admin": "/admin/",
+            },
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def health_check(request):
     database_status = "ok"
     try:
