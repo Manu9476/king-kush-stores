@@ -46,11 +46,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          package-manager-cache: false
+      - name: Verify Node runtime
+        run: |
+          node -v
+          npm -v
 
       - name: Install frontend dependencies
         run: npm ci
