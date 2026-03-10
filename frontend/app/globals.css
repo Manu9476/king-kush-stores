@@ -1,0 +1,227 @@
+@import "tailwindcss";
+
+/* Light-mode-only for now: dark:* utilities activate only if this class exists. */
+@custom-variant dark (&:where(.kk-enable-dark, .kk-enable-dark *));
+
+@theme {
+  /* Primary & Accents */
+  --color-primary: #1E3A8A; /* Deep Royal Blue */
+  --color-primary-hover: #1E3163;
+  --color-success: #10B981; /* Emerald Green */
+  --color-success-hover: #059669;
+  --color-accent: #F59E0B; /* Warm Orange */
+  --color-accent-hover: #D97706;
+
+  /* Light Mode Neutrals */
+  --color-neutral-bg: #F3F4F6;
+  --color-neutral-surface: #FFFFFF;
+  --color-neutral-text: #1F2937;
+
+  /* Dark Mode Neutrals */
+  --color-dark-bg: #111827;
+  --color-dark-surface: #1F2937;
+  --color-dark-text: #E5E7EB;
+
+  /* Typography */
+  --font-heading: var(--font-poppins), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+
+  /* Font Sizes */
+  --text-micro: 11px;
+  --text-small: 12px;
+  --text-body: 14px;
+  --text-body-lg: 16px;
+  --text-h3: 22px;
+  --text-h2: 28px;
+  --text-h1: 36px;
+
+  /* UI Features */
+  --shadow-modern: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --radius-modern: 12px;
+  --radius-modern-lg: 16px;
+}
+
+/* Base styles for a clean starting point */
+@layer base {
+  body {
+    background-color: var(--color-neutral-bg);
+    color: var(--color-neutral-text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+
+  input,
+  textarea,
+  select {
+    color: #111827;
+    border-color: #cbd5e1;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #6b7280;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.28);
+  }
+}
+
+/* Shared interaction and readability improvements across the platform */
+.text-gray-500 {
+  color: #576173;
+}
+
+.text-gray-600 {
+  color: #465266;
+}
+
+button:not(:disabled),
+a.rounded-modern,
+a.rounded-lg,
+a.rounded-xl,
+a.rounded-full {
+  transition: transform 140ms ease, box-shadow 180ms ease, background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+button:not(:disabled):hover,
+a.rounded-modern:hover,
+a.rounded-lg:hover,
+a.rounded-xl:hover,
+a.rounded-full:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.ui-card {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-modern);
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.ui-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ui-subtitle {
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+/* Dashboard presentation (customer + vendor panels only) */
+.dashboard-shell {
+  position: relative;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(30, 58, 138, 0.12) 0, rgba(30, 58, 138, 0) 32%),
+    radial-gradient(circle at 92% 12%, rgba(245, 158, 11, 0.1) 0, rgba(245, 158, 11, 0) 30%),
+    linear-gradient(180deg, #f6f8fc 0%, #eef2f9 100%);
+}
+
+.dashboard-shell button,
+.dashboard-shell a.rounded-modern,
+.dashboard-shell a.rounded-lg,
+.dashboard-shell a.rounded-full {
+  transition: transform 150ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.dashboard-shell button:hover,
+.dashboard-shell a.rounded-modern:hover,
+.dashboard-shell a.rounded-lg:hover,
+.dashboard-shell a.rounded-full:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(30, 58, 138, 0.2), 0 10px 20px rgba(30, 58, 138, 0.2);
+}
+
+.dashboard-shell button:focus-visible,
+.dashboard-shell a.rounded-modern:focus-visible,
+.dashboard-shell a.rounded-lg:focus-visible,
+.dashboard-shell a.rounded-full:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.35);
+}
+
+.dashboard-theme-toggle {
+  border: 1px solid #d4dbe7;
+  background: linear-gradient(135deg, #ffffff 0%, #f3f6fd 100%);
+  color: #1e3a8a;
+}
+
+.dashboard-shell[data-theme="dark"] {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(30, 58, 138, 0.32) 0, rgba(30, 58, 138, 0) 35%),
+    radial-gradient(circle at 90% 15%, rgba(245, 158, 11, 0.2) 0, rgba(245, 158, 11, 0) 30%),
+    linear-gradient(180deg, #050913 0%, #0b1320 100%);
+}
+
+.dashboard-shell[data-theme="dark"] .bg-white {
+  background-color: #111827 !important;
+}
+
+.dashboard-shell[data-theme="dark"] .bg-neutral-bg,
+.dashboard-shell[data-theme="dark"] .bg-gray-50 {
+  background-color: #1b2535 !important;
+}
+
+.dashboard-shell[data-theme="dark"] .bg-gray-100 {
+  background-color: #243244 !important;
+}
+
+.dashboard-shell[data-theme="dark"] .border-gray-50,
+.dashboard-shell[data-theme="dark"] .border-gray-100,
+.dashboard-shell[data-theme="dark"] .border-gray-200,
+.dashboard-shell[data-theme="dark"] .border-gray-300 {
+  border-color: #324153 !important;
+}
+
+.dashboard-shell[data-theme="dark"] .text-gray-900,
+.dashboard-shell[data-theme="dark"] .text-gray-800,
+.dashboard-shell[data-theme="dark"] .text-gray-700 {
+  color: #e5edf7 !important;
+}
+
+.dashboard-shell[data-theme="dark"] .text-gray-600,
+.dashboard-shell[data-theme="dark"] .text-gray-500 {
+  color: #b4c1d3 !important;
+}
+
+.dashboard-shell[data-theme="dark"] input,
+.dashboard-shell[data-theme="dark"] textarea,
+.dashboard-shell[data-theme="dark"] select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.dashboard-shell[data-theme="dark"] input::placeholder,
+.dashboard-shell[data-theme="dark"] textarea::placeholder {
+  color: #93a3ba !important;
+}
+
+.dashboard-shell[data-theme="dark"] .dashboard-theme-toggle {
+  border-color: #334155;
+  background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+  color: #e2e8f0;
+}
+
+.dashboard-shell[data-theme="dark"] button:hover,
+.dashboard-shell[data-theme="dark"] a.rounded-modern:hover,
+.dashboard-shell[data-theme="dark"] a.rounded-lg:hover,
+.dashboard-shell[data-theme="dark"] a.rounded-full:hover {
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.4), 0 12px 28px rgba(30, 64, 175, 0.35);
+}

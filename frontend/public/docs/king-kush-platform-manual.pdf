@@ -1,0 +1,968 @@
+%PDF-1.4
+%King-Kush Documentation
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 8 /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 2331 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+(KING-KUSH STORES PLATFORM MANUAL) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Version: March 9, 2026) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. PURPOSE OF THIS MANUAL) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This document explains how the King-Kush marketplace works end-to-end for:) Tj
+0 -14 Td
+(* Customers) Tj
+0 -14 Td
+(* Vendors \(sellers\)) Tj
+0 -14 Td
+(* Administrators \(including staff roles\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It is built from the current website structure and dashboard modules in this codebase.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(2. PLATFORM STRUCTURE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(King-Kush is a multi-role marketplace with three core account experiences:) Tj
+0 -14 Td
+(* Customer experience for shopping and order management) Tj
+0 -14 Td
+(* Vendor experience for store/product/finance operations) Tj
+0 -14 Td
+(* Admin experience for full marketplace governance) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The system also includes:) Tj
+0 -14 Td
+(* Centralized payments and split-order finance logic) Tj
+0 -14 Td
+(* Receipts center and transaction receipts) Tj
+0 -14 Td
+(* Pickup station operations) Tj
+0 -14 Td
+(* Support and help-center operations) Tj
+0 -14 Td
+(* Careers and advertising modules) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(3. ROLES AND ACCESS) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(3.1 CUSTOMER) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Customer accounts can browse, search, add to cart, checkout, track orders, manage profile,) Tj
+0 -14 Td
+(and request support.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(3.2 VENDOR) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor accounts can manage their storefront, products, orders, finances, receipts, and) Tj
+0 -14 Td
+(pickup operations \(when approved\).) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(3.3 ADMIN) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Admin can manage the entire marketplace. With RBAC enabled, staff can be limited to specific) Tj
+0 -14 Td
+(modules.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4. CUSTOMER GUIDE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.1 PUBLIC SHOPPING PAGES) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* Home \(`/`\): hero, promotions, trending products.) Tj
+0 -14 Td
+(* Search \(`/search?q=...`\): fuzzy search for products/categories/vendors.) Tj
+0 -14 Td
+(* Product detail \(`/product/[slug]`\): gallery, price, stock, specs, add to cart.) Tj
+0 -14 Td
+(* Cart \(`/cart`\): review items and subtotal.) Tj
+0 -14 Td
+(* Checkout \(`/checkout`\): shipping/payment/pickup flow.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 2490 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+(* Order success \(`/order-success`\): post-checkout confirmation.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.2 SEARCH AND PRODUCT DISCOVERY) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* Global navbar search supports autocomplete suggestions:) Tj
+0 -14 Td
+(  - Product suggestions) Tj
+0 -14 Td
+(  - Category suggestions) Tj
+0 -14 Td
+(  - Vendor suggestions) Tj
+0 -14 Td
+(* Keyboard support:) Tj
+0 -14 Td
+(  - Arrow up/down to navigate suggestions) Tj
+0 -14 Td
+(  - Enter to search selected suggestion) Tj
+0 -14 Td
+(  - Escape to close suggestions) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.3 PRODUCT BROWSING BEHAVIOR) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* Products are shown in horizontal rows with vertical page stacking.) Tj
+0 -14 Td
+(* Vertical finger scroll moves the whole page.) Tj
+0 -14 Td
+(* Sideways finger/trackpad scroll moves only the row under interaction.) Tj
+0 -14 Td
+(* Category and vendor filters are available in product galleries where enabled.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.4 MY ACCOUNT \(`/ACCOUNT`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Main account sections:) Tj
+0 -14 Td
+(* Overview: quick stats and shortcuts.) Tj
+0 -14 Td
+(* My Orders: order list, details, cancel \(when status allows\), generate receipt.) Tj
+0 -14 Td
+(* Wishlist: saved products and move-to-cart.) Tj
+0 -14 Td
+(* Shopping Activity: cart/recent activity.) Tj
+0 -14 Td
+(* Address Book: create, edit, delete, default address.) Tj
+0 -14 Td
+(* Payment Section: add/update/remove card or M-Pesa methods, set default.) Tj
+0 -14 Td
+(* Account Settings: profile and contact updates.) Tj
+0 -14 Td
+(* Returns & Refunds: return request tracking.) Tj
+0 -14 Td
+(* Support Center: contact/help/chatbot shortcuts.) Tj
+0 -14 Td
+(* Security & Privacy: login/security preferences and logout.) Tj
+0 -14 Td
+(* Seller Tools: links to sell/vendor resources.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.5 ORDER TRACKING) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Track orders from:) Tj
+0 -14 Td
+(* Account order details) Tj
+0 -14 Td
+(* Track Your Order page \(`/footer-links/track-your-order`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Displays:) Tj
+0 -14 Td
+(* Delivery or pickup progress) Tj
+0 -14 Td
+(* Station/shipping details) Tj
+0 -14 Td
+(* Payment status) Tj
+0 -14 Td
+(* Ordered items and totals) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.6 CUSTOMER RECEIPTS) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Customer receipts are available in:) Tj
+0 -14 Td
+(* Receipt center \(`/account/receipts`\)) Tj
+0 -14 Td
+(* Order screens via "Generate Receipt") Tj
+0 -14 Td
+(* Track-order view via "Generate Receipt") Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1965 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+() Tj
+0 -14 Td
+(Receipts are generated per transaction entity and downloadable as PDF.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.7 CUSTOMER SUPPORT) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Support channels:) Tj
+0 -14 Td
+(* Help Center \(`/footer-links/help-center`\)) Tj
+0 -14 Td
+(* Contact Us \(`/footer-links/contact-us`\)) Tj
+0 -14 Td
+(* Chat With Us \(`/footer-links/chat-with-us`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5. VENDOR GUIDE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor experience is under `/vendor/*`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.1 VENDOR APPROVAL LIFECYCLE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor account status:) Tj
+0 -14 Td
+(* Pending review) Tj
+0 -14 Td
+(* Needs info) Tj
+0 -14 Td
+(* Approved) Tj
+0 -14 Td
+(* Rejected) Tj
+0 -14 Td
+(* Suspended) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Some modules unlock only after approval.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.2 VENDOR DASHBOARD NAVIGATION) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* Overview \(`/vendor/overview`\)) Tj
+0 -14 Td
+(* Products \(`/vendor/products`\)) Tj
+0 -14 Td
+(* Orders \(`/vendor/orders`\)) Tj
+0 -14 Td
+(* Finance \(`/vendor/finance`\)) Tj
+0 -14 Td
+(* Receipts \(`/vendor/receipts`\)) Tj
+0 -14 Td
+(* Pickup Operations \(`/station-ops`\)) Tj
+0 -14 Td
+(* Store Profile \(`/vendor/profile`\)) Tj
+0 -14 Td
+(* Security \(`/vendor/security`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.3 PRODUCTS MODULE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendors can:) Tj
+0 -14 Td
+(* Create product listings) Tj
+0 -14 Td
+(* Edit title/description/specs/category/price/stock) Tj
+0 -14 Td
+(* Manage active state and images) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Product entry is aligned with platform structure so storefront display remains consistent.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.4 VENDOR ORDERS) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor sees only their own order lines/splits.) Tj
+0 -14 Td
+(Typical usage:) Tj
+0 -14 Td
+(* Review order status and customer destination data) Tj
+0 -14 Td
+(* Generate receipts from order rows) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.5 VENDOR FINANCE) Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 2081 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+() Tj
+0 -14 Td
+(Vendor finance page includes:) Tj
+0 -14 Td
+(* Wallet balances \(available/pending\)) Tj
+0 -14 Td
+(* Sales, commissions, net earnings) Tj
+0 -14 Td
+(* Recent wallet transactions) Tj
+0 -14 Td
+(* Payout requests and payout history) Tj
+0 -14 Td
+(* Automatic/manual payout policy visibility) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.6 VENDOR RECEIPTS) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor receipt center contains:) Tj
+0 -14 Td
+(* Payout receipts) Tj
+0 -14 Td
+(* Commission receipts) Tj
+0 -14 Td
+(* Settlement and wallet transaction receipts) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendors can regenerate/download eligible receipts as permitted.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.7 STORE PROFILE AND BRANDING) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor profile supports:) Tj
+0 -14 Td
+(* Store details) Tj
+0 -14 Td
+(* Contact updates) Tj
+0 -14 Td
+(* Business location/address) Tj
+0 -14 Td
+(* Branding assets \(logo/banner where configured\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.8 VENDOR SECURITY) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor can change password and maintain account security settings.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(6. STATION OPERATIONS GUIDE \(`/STATION-OPS`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Station operations portal is used by:) Tj
+0 -14 Td
+(* Authorized pickup admins/staff) Tj
+0 -14 Td
+(* Approved vendor users with station permissions) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Features:) Tj
+0 -14 Td
+(* Assigned station selection) Tj
+0 -14 Td
+(* Pickup order queue by station/status) Tj
+0 -14 Td
+(* Mark ready/collected/return drop-off) Tj
+0 -14 Td
+(* Temporary station notices) Tj
+0 -14 Td
+(* Operational settings \(services, pickup/returns toggles\)) Tj
+0 -14 Td
+(* Receipt generation for station-related orders) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7. ADMIN GUIDE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Admin portal is organized by module and supports role-based module visibility.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.1 ADMIN NAVIGATION MODEL) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Desktop:) Tj
+0 -14 Td
+(* Left sidebar grouped by Core, Operations, Team & Support) Tj
+0 -14 Td
+(Mobile:) Tj
+0 -14 Td
+(* Bottom quick nav) Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 1959 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+() Tj
+0 -14 Td
+(Built-in:) Tj
+0 -14 Td
+(* Module filter search) Tj
+0 -14 Td
+(* Command palette \(Ctrl/Cmd + K\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.2 ADMIN DASHBOARD \(`/ADMIN`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Tabs:) Tj
+0 -14 Td
+(* Overview) Tj
+0 -14 Td
+(* Orders) Tj
+0 -14 Td
+(* Chatbot conversations) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Overview cards typically show:) Tj
+0 -14 Td
+(* Revenue) Tj
+0 -14 Td
+(* Order volume) Tj
+0 -14 Td
+(* Commission) Tj
+0 -14 Td
+(* Queue summaries \(vendors, support, moderation, etc.\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.3 FINANCE \(`/ADMIN/FINANCE`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Finance desk includes:) Tj
+0 -14 Td
+(* Marketplace totals) Tj
+0 -14 Td
+(* Merchant account balance) Tj
+0 -14 Td
+(* Vendor liabilities) Tj
+0 -14 Td
+(* Payments table) Tj
+0 -14 Td
+(* Vendor split orders) Tj
+0 -14 Td
+(* Payout requests with action controls \(role-permitted\)) Tj
+0 -14 Td
+(* Receipt generation per finance transaction row) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.4 RECEIPTS \(`/ADMIN/RECEIPTS`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Admin receipt center supports:) Tj
+0 -14 Td
+(* Cross-role receipt visibility \(scope by permissions\)) Tj
+0 -14 Td
+(* Search/filter by category/type/status/reference) Tj
+0 -14 Td
+(* Download and regenerate) Tj
+0 -14 Td
+(* Manual admin receipts \(for approved admin actions\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.5 VENDORS \(`/ADMIN/VENDORS`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor management includes:) Tj
+0 -14 Td
+(* Application review and status changes) Tj
+0 -14 Td
+(* Vendor profile oversight) Tj
+0 -14 Td
+(* Operational follow-up through notes/workflow) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.6 PRODUCTS \(`/ADMIN/PRODUCTS`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Catalog controls:) Tj
+0 -14 Td
+(* Product review/edit/manage) Tj
+0 -14 Td
+(* Quality/compliance operations) Tj
+0 -14 Td
+(* Alignment with marketplace listing standards) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.7 PICKUP STATIONS \(`/ADMIN/PICKUP-STATIONS`\)) Tj
+0 -14 Td
+() Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 2034 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+(Central pickup governance:) Tj
+0 -14 Td
+(* Station CRUD) Tj
+0 -14 Td
+(* Ownership model handling \(platform/vendor-managed\)) Tj
+0 -14 Td
+(* Staff assignments) Tj
+0 -14 Td
+(* Operational toggles and visibility/approval states) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.8 ADVERTISING \(`/ADMIN/ADVERTISING`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Advertising operations:) Tj
+0 -14 Td
+(* Ad requests) Tj
+0 -14 Td
+(* Campaign setup and approval) Tj
+0 -14 Td
+(* Placement controls) Tj
+0 -14 Td
+(* Analytics tracking) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.9 PROMOTIONS \(`/ADMIN/PROMOTIONS`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Promotions and campaign controls:) Tj
+0 -14 Td
+(* Black Friday and flash campaigns) Tj
+0 -14 Td
+(* Offer creation/scheduling) Tj
+0 -14 Td
+(* Promo performance and product linking) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.10 SUPPORT \(`/ADMIN/SUPPORT`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Support management:) Tj
+0 -14 Td
+(* Ticket inbox) Tj
+0 -14 Td
+(* Threaded responses) Tj
+0 -14 Td
+(* Status updates \(pending/in-progress/resolved\)) Tj
+0 -14 Td
+(* Help center content management) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.11 MODERATION \(`/ADMIN/MODERATION`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Moderation operations:) Tj
+0 -14 Td
+(* Reported product queue) Tj
+0 -14 Td
+(* Investigation details) Tj
+0 -14 Td
+(* Resolution actions and traceability) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.12 CAREERS \(`/ADMIN/CAREERS`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Hiring management:) Tj
+0 -14 Td
+(* Job openings) Tj
+0 -14 Td
+(* Dynamic application form fields) Tj
+0 -14 Td
+(* Applicant list and status workflow) Tj
+0 -14 Td
+(* File access for CV/supporting docs) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.13 STAFF & ROLES \(`/ADMIN/STAFF`\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(RBAC and internal team management:) Tj
+0 -14 Td
+(* Staff role templates) Tj
+0 -14 Td
+(* Permission assignment) Tj
+0 -14 Td
+(* Module-level access restriction) Tj
+0 -14 Td
+(* Staff account enable/disable flows) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Only super admin should control role definitions and global access changes.) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 2046 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+() Tj
+0 -14 Td
+(8. PAYMENTS, ORDERS, AND RECEIPT LIFECYCLE) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.1 CHECKOUT TO PAYMENT) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Typical flow:) Tj
+0 -14 Td
+(1. Customer places order) Tj
+0 -14 Td
+(2. Payment initiation \(e.g., M-Pesa STK push\)) Tj
+0 -14 Td
+(3. Payment confirmation) Tj
+0 -14 Td
+(4. Order status and split allocation updates) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.2 MULTI-VENDOR SPLIT LOGIC) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(One customer payment can produce multiple vendor sub-orders internally.) Tj
+0 -14 Td
+(Vendors only access their own split.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.3 PAYOUT LOGIC) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Vendor earnings move through wallet balances and payout lifecycle.) Tj
+0 -14 Td
+(Payout mode can be automatic or managed per policy.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.4 RECEIPT TRIGGERING) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Receipts can be generated from:) Tj
+0 -14 Td
+(* Order rows) Tj
+0 -14 Td
+(* Payment rows) Tj
+0 -14 Td
+(* Vendor split rows) Tj
+0 -14 Td
+(* Payout rows) Tj
+0 -14 Td
+(* Refund/transaction entities \(where applicable\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Each generated receipt is downloadable PDF and linked to transaction context.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9. FOOTER INFORMATION AND SUPPORT PAGES) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Footer pages include structured operations and policy content such as:) Tj
+0 -14 Td
+(* Payment guidelines) Tj
+0 -14 Td
+(* How to order) Tj
+0 -14 Td
+(* Return/refund policy) Tj
+0 -14 Td
+(* Terms and privacy) Tj
+0 -14 Td
+(* Store locator) Tj
+0 -14 Td
+(* Dispute resolution) Tj
+0 -14 Td
+(* Affiliate and advertising information) Tj
+0 -14 Td
+(* Careers and application path) Tj
+0 -14 Td
+(* Regional/international informational pages) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(These pages act as customer guidance and operational reference points.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(10. CORE FRONTEND COMPONENTS \(OPERATIONAL VIEW\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(10.1 NAVBAR) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* Role-aware account destination) Tj
+0 -14 Td
+(* Cart status badge) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 2005 >>
+stream
+BT
+/F1 10 Tf
+48 790 Td
+(* Global search with autocomplete) Tj
+0 -14 Td
+(* Logo click navigation \(and home refresh behavior\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(10.2 PRODUCTGRIDCARD) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Card-level interaction:) Tj
+0 -14 Td
+(* Product image and badges) Tj
+0 -14 Td
+(* Vendor/category context) Tj
+0 -14 Td
+(* Price and promotion indicators) Tj
+0 -14 Td
+(* Wishlist toggle) Tj
+0 -14 Td
+(* Add-to-cart action) Tj
+0 -14 Td
+(* Product detail navigation) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(10.3 PRODUCTSCROLLGALLERY) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* Row-based product layout) Tj
+0 -14 Td
+(* Category/vendor filtering) Tj
+0 -14 Td
+(* Vertical page scrolling + row-specific horizontal scroll) Tj
+0 -14 Td
+(* Touch/trackpad gesture handling tuned for mobile usability) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(11. RECOMMENDED DAILY WORKFLOWS) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(11.1 CUSTOMER) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. Search or browse products) Tj
+0 -14 Td
+(2. Add to cart and checkout) Tj
+0 -14 Td
+(3. Track order progress) Tj
+0 -14 Td
+(4. Download receipt from account or tracking page) Tj
+0 -14 Td
+(5. Use support channels when needed) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(11.2 VENDOR) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. Maintain store profile and products) Tj
+0 -14 Td
+(2. Process vendor orders) Tj
+0 -14 Td
+(3. Monitor finance and payouts) Tj
+0 -14 Td
+(4. Download receipts for settlements/payouts) Tj
+0 -14 Td
+(5. Manage pickup operations if assigned) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(11.3 ADMIN) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. Start from dashboard queue) Tj
+0 -14 Td
+(2. Review finance and payout operations) Tj
+0 -14 Td
+(3. Process vendor, support, and moderation queues) Tj
+0 -14 Td
+(4. Maintain campaigns and content modules) Tj
+0 -14 Td
+(5. Audit actions via receipts and module logs) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(12. NOTES) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(* This guide reflects the current implementation structure in the codebase.) Tj
+0 -14 Td
+(* If modules/routes change, regenerate this documentation so it stays aligned.) Tj
+ET
+endstream
+endobj
+xref
+0 20
+0000000000 65535 f 
+0000000034 00000 n 
+0000000083 00000 n 
+0000000187 00000 n 
+0000000257 00000 n 
+0000000383 00000 n 
+0000002766 00000 n 
+0000002892 00000 n 
+0000005434 00000 n 
+0000005560 00000 n 
+0000007577 00000 n 
+0000007705 00000 n 
+0000009839 00000 n 
+0000009967 00000 n 
+0000011979 00000 n 
+0000012107 00000 n 
+0000014194 00000 n 
+0000014322 00000 n 
+0000016421 00000 n 
+0000016549 00000 n 
+trailer
+<< /Size 20 /Root 1 0 R >>
+startxref
+18607
+%%EOF
