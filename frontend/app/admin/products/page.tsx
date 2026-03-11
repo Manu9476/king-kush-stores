@@ -7,6 +7,7 @@ import {
   Category,
   VendorApplicationAdmin,
   VendorProduct,
+  createAdminCategory,
   createAdminProduct,
   deleteAdminProduct,
   getAdminProducts,
@@ -33,6 +34,12 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [vendors, setVendors] = useState<VendorApplicationAdmin[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+    parent: "" as number | "",
+  });
+  const [categorySaving, setCategorySaving] = useState(false);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [bulkJson, setBulkJson] = useState("");
   const [bulkStatus, setBulkStatus] = useState("");
@@ -115,6 +122,34 @@ export default function AdminProductsPage() {
     } catch (err: any) {
       setError(err?.message || "Failed to create product.");
       throw err;
+    }
+  };
+
+  const createCategory = async () => {
+    if (!token || !canCreateProducts) return;
+    const name = categoryForm.name.trim();
+    if (!name) {
+      setError("Category name is required.");
+      return;
+    }
+    setCategorySaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const created = await createAdminCategory(token, {
+        name,
+        description: categoryForm.description.trim() || "",
+        parent: typeof categoryForm.parent === "number" ? categoryForm.parent : null,
+      });
+      setCategories((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      setCategoryForm({ name: "", description: "", parent: "" });
+      setSuccess(`Category "${created.name}" created successfully.`);
+    } catch (err: any) {
+      setError(err?.message || "Failed to create category.");
+    } finally {
+      setCategorySaving(false);
     }
   };
 
@@ -217,6 +252,58 @@ export default function AdminProductsPage() {
 
         {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {success && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div>}
+
+        <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-bold text-gray-900">Create Product Category</h2>
+            <p className="mt-1 text-sm text-gray-600">Add categories here instead of going to Django admin.</p>
+          </div>
+          {canCreateProducts ? (
+            <div className="grid gap-3 p-5 md:grid-cols-2">
+              <input
+                value={categoryForm.name}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Category name (e.g. Electronics)"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <select
+                value={categoryForm.parent}
+                onChange={(event) =>
+                  setCategoryForm((prev) => ({
+                    ...prev,
+                    parent: event.target.value ? Number(event.target.value) : "",
+                  }))
+                }
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">No parent category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                value={categoryForm.description}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, description: event.target.value }))}
+                placeholder="Optional description"
+                className="min-h-20 rounded-lg border border-gray-300 px-3 py-2 text-sm md:col-span-2"
+              />
+              <div className="md:col-span-2">
+                <button
+                  type="button"
+                  onClick={createCategory}
+                  disabled={categorySaving}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+                >
+                  {categorySaving ? "Creating..." : "Create Category"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-5 py-4 text-sm text-gray-600">You have read-only access to categories.</div>
+          )}
+        </section>
 
         <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">

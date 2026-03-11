@@ -288,6 +288,12 @@ export interface Category {
     parent: number | null;
 }
 
+export interface AdminCategoryPayload {
+    name: string;
+    description?: string;
+    parent?: number | null;
+}
+
 export interface VendorProduct {
     id: number;
     vendor_profile_id: number;
@@ -1593,6 +1599,25 @@ export async function getCategories(): Promise<Category[]> {
     });
     if (!response.ok) {
         throw new Error("Failed to load categories.");
+    }
+    return await response.json();
+}
+
+export async function createAdminCategory(
+    token: string,
+    payload: AdminCategoryPayload,
+): Promise<Category> {
+    const response = await requestWithApiBaseFallback(
+        "/products/admin/categories/",
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to create category."));
     }
     return await response.json();
 }

@@ -158,6 +158,39 @@ def get_categories(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated, IsMarketplaceAdmin])
+def admin_categories(request):
+    if request.method == "GET":
+        if not has_admin_permission(request.user, "products.view"):
+            return Response({"detail": "Missing permission: products.view"}, status=status.HTTP_403_FORBIDDEN)
+        categories = Category.objects.all().order_by("name")
+        return Response(CategorySerializer(categories, many=True).data, status=status.HTTP_200_OK)
+
+    if not has_admin_permission(request.user, "products.create"):
+        return Response({"detail": "Missing permission: products.create"}, status=status.HTTP_403_FORBIDDEN)
+
+    name = str(request.data.get("name", "")).strip()
+    if not name:
+        return Response({"detail": "Category name is required."}, status=status.HTTP_400_BAD_REQUEST)
+    if Category.objects.filter(name__iexact=name).exists():
+        return Response({"detail": "A category with this name already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = CategorySerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    category = serializer.save()
+
+    log_admin_activity(
+        actor=request.user,
+        action="category.create",
+        description=f"Created category '{category.name}'.",
+        target_type="Category",
+        target_id=str(category.id),
+        metadata={"slug": category.slug, "parent": category.parent_id},
+    )
+    return Response(CategorySerializer(category).data, status=status.HTTP_201_CREATED)
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsApprovedVendor])
 def vendor_dashboard_summary(request):

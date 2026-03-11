@@ -11,6 +11,7 @@ urlpatterns = [
     path('vendor/products/bulk-import/', views.vendor_products_bulk_import, name='vendor-products-bulk-import'),
     path('vendor/products/<int:product_id>/', views.vendor_product_detail, name='vendor-product-detail'),
     path('admin/products/', views.admin_products, name='admin-products'),
+    path('admin/categories/', views.admin_categories, name='admin-categories'),
     path('admin/products/bulk-import/', views.admin_products_bulk_import, name='admin-products-bulk-import'),
     path('admin/products/<int:product_id>/', views.admin_product_detail, name='admin-product-detail'),
     
