@@ -26,7 +26,6 @@ handler403 = "core.error_views.permission_denied"
 handler404 = "core.error_views.page_not_found"
 handler500 = "core.error_views.server_error"
 
-# THE FIX: This explicitly tells Django to serve your image files so the frontend can display them!
-# We only do this when DEBUG is True (for safety)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve uploaded media files (product/vendor/ads images).
+# In this deployment, media URLs must remain accessible in both debug and production.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
