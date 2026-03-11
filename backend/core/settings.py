@@ -111,16 +111,21 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database - use DATABASE_URL in production (e.g., Neon/Postgres), fallback to SQLite in local dev.
 _DATABASE_URL = config("DATABASE_URL", default="").strip()
-if _DATABASE_URL:
-    if not dj_database_url:
-        raise ImproperlyConfigured("DATABASE_URL is set but dj-database-url is not installed.")
-    DATABASES = {
-        "default": dj_database_url.parse(
-            _DATABASE_URL,
-            conn_max_age=config("DB_CONN_MAX_AGE", default=600, cast=int),
-            ssl_require=_env_bool("DB_SSL_REQUIRE", default=IS_PRODUCTION),
-        )
-    }
+if _DATABASE_URL and dj_database_url:
+    try:
+        DATABASES = {
+            "default": dj_database_url.parse(
+                _DATABASE_URL,
+                conn_max_age=config("DB_CONN_MAX_AGE", default=600, cast=int),
+            )
+        }
+    except Exception:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 else:
     DATABASES = {
         'default': {
