@@ -1,8 +1,9 @@
 # backend/backend/urls.py
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings             # <-- This lets us read your settings file
-from django.conf.urls.static import static   # <-- This lets us serve image files
+from django.views.static import serve as static_serve
+from urllib.parse import urlsplit
 from .views import api_root, health_check
 
 urlpatterns = [
@@ -26,6 +27,14 @@ handler403 = "core.error_views.permission_denied"
 handler404 = "core.error_views.page_not_found"
 handler500 = "core.error_views.server_error"
 
-# Serve uploaded media files (product/vendor/ads images).
-# In this deployment, media URLs must remain accessible in both debug and production.
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve uploaded media files (product/vendor/ads images) for this deployment.
+# Note: for higher-scale production, move media to object storage (e.g. S3/Cloudinary).
+if settings.MEDIA_URL and not urlsplit(settings.MEDIA_URL).netloc:
+    media_prefix = settings.MEDIA_URL.lstrip("/")
+    urlpatterns += [
+        re_path(
+            rf"^{media_prefix}(?P<path>.*)$",
+            static_serve,
+            {"document_root": settings.MEDIA_ROOT},
+        )
+    ]
