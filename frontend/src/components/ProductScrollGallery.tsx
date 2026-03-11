@@ -97,7 +97,6 @@ export default function ProductScrollGallery({ items, showFilters = true }: Prod
     // Optional: when no explicit filter is active, prefer grouping similar items in same row by category/vendor.
     if (categoryFilter === "all" && vendorFilter === "all") {
       const grouped = new Map<string, ProductScrollItem[]>();
-      const groupOrder: string[] = [];
 
       for (const entry of filteredItems) {
         const categoryName = entry.product.category?.name?.trim();
@@ -105,10 +104,16 @@ export default function ProductScrollGallery({ items, showFilters = true }: Prod
         const groupKey = categoryName || vendorName || "Other";
         if (!grouped.has(groupKey)) {
           grouped.set(groupKey, []);
-          groupOrder.push(groupKey);
         }
         grouped.get(groupKey)!.push(entry);
       }
+
+      // Prioritize categories/vendors with the longest rows at the top.
+      const groupOrder = Array.from(grouped.keys()).sort((a, b) => {
+        const sizeDiff = (grouped.get(b)?.length || 0) - (grouped.get(a)?.length || 0);
+        if (sizeDiff !== 0) return sizeDiff;
+        return a.localeCompare(b);
+      });
 
       const groupedRows: ProductScrollItem[][] = [];
       for (const key of groupOrder) {

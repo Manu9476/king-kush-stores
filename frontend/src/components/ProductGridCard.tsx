@@ -68,7 +68,8 @@ export default function ProductGridCard({ product, badgeText, onOpen }: ProductG
     getProductDefaultSaleOption(product)?.id ?? null,
   );
 
-  const productHref = `/product/${product.slug || product.id}`;
+  const routeSegment = encodeURIComponent(String(product.slug || product.id));
+  const productHref = `/product/${routeSegment}`;
   const rating = useMemo(() => getProductRating(product.id), [product.id]);
   const reviewCount = useMemo(() => getProductReviewCount(product.id), [product.id]);
   const roundedRating = Math.round(rating);

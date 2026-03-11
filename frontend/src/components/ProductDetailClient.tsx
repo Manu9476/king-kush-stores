@@ -425,7 +425,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
               </p>
             </div>
 
-            <AdSlot placementKey="sidebar_promo" pagePath={`/product/${product.slug}`} category={product.category?.name || ""} />
+            <AdSlot placementKey="sidebar_promo" pagePath={`/product/${encodeURIComponent(String(product.slug || product.id))}`} category={product.category?.name || ""} />
           </aside>
         </div>
 

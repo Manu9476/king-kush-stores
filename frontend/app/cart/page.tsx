@@ -93,7 +93,7 @@ export default function CartPage() {
 
                 <div className="grow text-center sm:text-left">
                   <Link
-                    href={`/product/${item.slug}`}
+                    href={`/product/${encodeURIComponent(String(item.slug || item.id))}`}
                     className="hover:text-accent transition-colors"
                   >
                     <h3 className="font-heading font-semibold text-body-lg text-neutral-text mb-1">

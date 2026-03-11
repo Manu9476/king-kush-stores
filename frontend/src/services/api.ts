@@ -1328,8 +1328,10 @@ export async function getProducts(): Promise<Product[]> {
         const products = await response.json();
         
         return products.map((product: any) => {
-            if (!product.slug) {
-                product.slug = product.title ? product.title.toLowerCase() : product.id;
+            const rawSlug = typeof product.slug === "string" ? product.slug.trim() : "";
+            const isSafeSlug = rawSlug.length > 0 && /^[a-zA-Z0-9_-]+$/.test(rawSlug);
+            if (!isSafeSlug) {
+                product.slug = String(product.id);
             }
             product.sale_type = product.sale_type || "single_item";
             product.base_unit_label = product.base_unit_label || "item";
@@ -1362,12 +1364,27 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
+    const normalizeToken = (value: string) =>
+        decodeURIComponent(String(value || ""))
+            .trim()
+            .toLowerCase();
+
     try {
         const response = await fetch(`${SERVER_API_URL}/products/${slug}/`, {
             cache: 'no-store'
         });
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+            const allProducts = await getProducts();
+            const token = normalizeToken(slug);
+            const fallback = allProducts.find((candidate: any) => {
+                const candidateSlug = normalizeToken(candidate.slug || "");
+                const candidateId = normalizeToken(String(candidate.id || ""));
+                const candidateTitle = normalizeToken(candidate.title || "");
+                return token === candidateSlug || token === candidateId || token === candidateTitle;
+            });
+            return fallback || null;
+        }
 
         const product: any = await response.json();
         product.sale_type = product.sale_type || "single_item";
