@@ -164,6 +164,19 @@ export default function Navbar() {
     runSearch(query);
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isSearchFocused || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === "Escape") {
+      setIsSearchFocused(false);
+    }
+  };
+
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (pathname === "/") {
       e.preventDefault();
@@ -182,40 +195,126 @@ export default function Navbar() {
         ? "/vendor"
         : "/account";
 
+  const showSuggestions = isSearchFocused && query.trim() && suggestions.length > 0;
+
+  const suggestionsDropdown = (
+    <div className="absolute left-0 right-0 top-[110%] z-50 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+      {suggestions.map((entry, index) => (
+        <button
+          key={entry.id}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => runSearch(entry.query)}
+          className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
+            index === activeSuggestionIndex
+              ? "bg-primary/10 text-primary"
+              : "text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          <span className="truncate">{entry.label}</span>
+          <span className="ml-3 shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+            {entry.kind}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
-        
-        {/* Brand Logo */}
-        <Link
-          href="/"
-          onClick={handleLogoClick}
-          className="font-heading font-bold text-h3 text-primary tracking-tight"
-        >
-          King-Kush<span className="text-accent">.</span>
-        </Link>
+      <div ref={searchRef} className="max-w-7xl mx-auto px-4 md:px-8">
+        <div className="flex h-16 md:h-20 items-center justify-between gap-3">
+          {/* Brand Logo */}
+          <Link
+            href="/"
+            onClick={handleLogoClick}
+            className="font-heading font-bold text-h3 text-primary tracking-tight"
+          >
+            King-Kush<span className="text-accent">.</span>
+          </Link>
 
-        {/* Search Bar */}
-        <div ref={searchRef} className="hidden md:flex grow max-w-xl mx-8">
+          {/* Desktop Search Bar */}
+          <div className="hidden md:flex grow max-w-xl mx-8">
+            <form onSubmit={handleSearch} className="relative w-full">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search for products, brands, and categories..."
+                className="w-full bg-neutral-bg border border-gray-200 rounded-full py-2.5 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20 font-body text-body transition-all"
+              />
+              <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-accent transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </button>
+              {showSuggestions ? suggestionsDropdown : null}
+            </form>
+          </div>
+
+          {/* Account, Cart, & Logout Area */}
+          <div className="flex items-center space-x-3 md:space-x-6">
+          
+            {/* 1. USER ICON (Dynamic Name vs 'Login') */}
+            <Link 
+              href={accountHref} 
+              className="text-neutral-text hover:text-primary transition-colors flex flex-col items-center rounded-modern px-2 py-1 hover:bg-gray-50"
+              title={userEmail || "Login"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+              {/* FIXED: Changed max-w-[70px] to max-w-20 to clear the linter warning */}
+              <span className="text-micro font-body mt-1 font-medium max-w-20 truncate text-center">
+                {isAuthenticated ? displayName : "Login"}
+              </span>
+            </Link>
+            
+            {/* 2. CART ICON */}
+            <Link href="/cart" className="text-neutral-text hover:text-primary transition-colors flex flex-col items-center relative rounded-modern px-2 py-1 hover:bg-gray-50">
+              <div className="relative">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-fade-in">
+                    {cartCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-micro font-body mt-1 font-medium">Cart</span>
+            </Link>
+
+            {/* 3. SEPARATED LOGOUT BUTTON (Only visible when logged in) */}
+            {isAuthenticated && (
+              <div className="pl-2 ml-1 border-l border-gray-200 md:pl-6 md:ml-2">
+                <button 
+                  onClick={logout} 
+                  className="text-gray-400 hover:text-error transition-colors flex flex-col items-center group rounded-modern px-2 py-1 hover:bg-gray-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 group-hover:scale-110 transition-transform">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                  <span className="text-micro font-body mt-1 font-medium">Logout</span>
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <div className="pb-3 md:hidden">
           <form onSubmit={handleSearch} className="relative w-full">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              onKeyDown={(e) => {
-                if (!isSearchFocused || suggestions.length === 0) return;
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setActiveSuggestionIndex((prev) => (prev + 1) % suggestions.length);
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setActiveSuggestionIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
-                } else if (e.key === "Escape") {
-                  setIsSearchFocused(false);
-                }
-              }}
-              placeholder="Search for products, brands, and categories..." 
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search for products, brands, and categories..."
               className="w-full bg-neutral-bg border border-gray-200 rounded-full py-2.5 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20 font-body text-body transition-all"
             />
             <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-accent transition-colors">
@@ -223,80 +322,8 @@ export default function Navbar() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </button>
-
-            {isSearchFocused && query.trim() && suggestions.length > 0 ? (
-              <div className="absolute left-0 right-0 top-[110%] z-50 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
-                {suggestions.map((entry, index) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => runSearch(entry.query)}
-                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
-                      index === activeSuggestionIndex
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <span className="truncate">{entry.label}</span>
-                    <span className="ml-3 shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                      {entry.kind}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            {showSuggestions ? suggestionsDropdown : null}
           </form>
-        </div>
-
-        {/* Account, Cart, & Logout Area */}
-        <div className="flex items-center space-x-6">
-          
-          {/* 1. USER ICON (Dynamic Name vs 'Login') */}
-          <Link 
-            href={accountHref} 
-            className="text-neutral-text hover:text-primary transition-colors flex flex-col items-center rounded-modern px-2 py-1 hover:bg-gray-50"
-            title={userEmail || "Login"}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-            {/* FIXED: Changed max-w-[70px] to max-w-20 to clear the linter warning */}
-            <span className="text-micro font-body mt-1 font-medium max-w-20 truncate text-center">
-              {isAuthenticated ? displayName : "Login"}
-            </span>
-          </Link>
-          
-          {/* 2. CART ICON */}
-          <Link href="/cart" className="text-neutral-text hover:text-primary transition-colors flex flex-col items-center relative rounded-modern px-2 py-1 hover:bg-gray-50">
-            <div className="relative">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-fade-in">
-                  {cartCount}
-                </span>
-              )}
-            </div>
-            <span className="text-micro font-body mt-1 font-medium">Cart</span>
-          </Link>
-
-          {/* 3. SEPARATED LOGOUT BUTTON (Only visible when logged in) */}
-          {isAuthenticated && (
-            <div className="pl-6 ml-2 border-l border-gray-200">
-              <button 
-                onClick={logout} 
-                className="text-gray-400 hover:text-error transition-colors flex flex-col items-center group rounded-modern px-2 py-1 hover:bg-gray-50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 group-hover:scale-110 transition-transform">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                </svg>
-                <span className="text-micro font-body mt-1 font-medium">Logout</span>
-              </button>
-            </div>
-          )}
-
         </div>
       </div>
     </header>
