@@ -25,6 +25,30 @@ type AdSlotProps = {
   className?: string;
 };
 
+function resolveCampaignHref(campaign: AdvertisingCampaign): string {
+  const raw = (campaign.target_url || "").trim();
+  if (raw && (raw.startsWith("/") || /^https?:\/\//i.test(raw))) {
+    return raw;
+  }
+  const fallbackQuery = campaign.category_context || campaign.title || "offers";
+  return `/search?q=${encodeURIComponent(fallbackQuery)}`;
+}
+
+function getCampaignPurpose(campaign: AdvertisingCampaign): string {
+  const mapped: Record<string, string> = {
+    sales: "Sales",
+    awareness: "Awareness",
+    new_arrival: "New Arrival",
+    flash_sale: "Flash Sale",
+    vendor_spotlight: "Vendor Spotlight",
+    brand_promotion: "Brand Promotion",
+    other: "Promotion",
+  };
+  const purposeText = mapped[campaign.purpose] || "Promotion";
+  const subtitle = (campaign.subtitle || "").trim();
+  return subtitle ? `${purposeText} · ${subtitle}` : purposeText;
+}
+
 function getAdSessionId(): string {
   if (typeof window === "undefined") return "server-session";
   const key = "adSessionId";
@@ -119,6 +143,9 @@ export default function AdSlot({
     <section className={`${slotStylesByPlacement(placementKey)} ${className}`}>
       <div className="space-y-3">
         {campaigns.map((campaign) => {
+          const href = resolveCampaignHref(campaign);
+          const isExternal = /^https?:\/\//i.test(href);
+          const purposeLabel = getCampaignPurpose(campaign);
           const body = (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -129,7 +156,7 @@ export default function AdSlot({
                   <span className="text-[11px] text-gray-500">{campaign.placement.name}</span>
                 </div>
                 <p className="text-sm font-bold text-gray-900">{campaign.title}</p>
-                {campaign.subtitle ? <p className="mt-1 text-xs text-gray-700">{campaign.subtitle}</p> : null}
+                <p className="mt-1 text-xs font-medium text-primary">Purpose: {purposeLabel}</p>
                 {campaign.description ? <p className="mt-1 text-xs text-gray-600 line-clamp-2">{campaign.description}</p> : null}
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -140,29 +167,19 @@ export default function AdSlot({
                     className="h-16 w-28 rounded-lg border border-gray-200 object-cover"
                   />
                 ) : null}
-                {campaign.target_url ? (
-                  <span className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white">
-                    {campaign.cta_label || "Learn More"}
-                  </span>
-                ) : null}
+                <span className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white">
+                  {campaign.cta_label || "Learn More"}
+                </span>
               </div>
             </div>
           );
 
-          if (!campaign.target_url) {
-            return (
-              <article key={campaign.id} className="rounded-xl border border-gray-200 bg-white px-3 py-3">
-                {body}
-              </article>
-            );
-          }
-
           return (
             <Link
               key={campaign.id}
-              href={campaign.target_url}
-              target="_blank"
-              rel="noreferrer"
+              href={href}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noreferrer" : undefined}
               onClick={() => {
                 void trackAdvertisingEvent(
                   {

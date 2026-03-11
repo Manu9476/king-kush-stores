@@ -257,6 +257,7 @@ def admin_advertising_campaigns(request):
         status_filter = request.query_params.get("status", "").strip()
         placement_key = request.query_params.get("placement", "").strip()
         source_type = request.query_params.get("source_type", "").strip()
+        purpose = request.query_params.get("purpose", "").strip()
         query = request.query_params.get("q", "").strip()
 
         queryset = AdvertisingCampaign.objects.select_related("placement", "owner", "approved_by")
@@ -266,6 +267,8 @@ def admin_advertising_campaigns(request):
             queryset = queryset.filter(placement__key=placement_key)
         if source_type:
             queryset = queryset.filter(source_type=source_type)
+        if purpose:
+            queryset = queryset.filter(purpose=purpose)
         if query:
             queryset = queryset.filter(
                 Q(title__icontains=query)
@@ -377,6 +380,27 @@ def admin_advertising_analytics(request):
         placement_performance.append({**row, "ctr": local_ctr})
     placement_performance.sort(key=lambda item: item["impressions"], reverse=True)
 
+    # Aggregate impression/click totals per campaign purpose.
+    purpose_totals = {}
+    for campaign in campaigns:
+        key = campaign.purpose
+        if key not in purpose_totals:
+            purpose_totals[key] = {
+                "purpose_key": key,
+                "campaigns_count": 0,
+                "impressions": 0,
+                "clicks": 0,
+            }
+        purpose_totals[key]["campaigns_count"] += 1
+        purpose_totals[key]["impressions"] += int(campaign.impression_count or 0)
+        purpose_totals[key]["clicks"] += int(campaign.click_count or 0)
+
+    purpose_performance = []
+    for row in purpose_totals.values():
+        local_ctr = round((row["clicks"] / row["impressions"]) * 100, 2) if row["impressions"] else 0.0
+        purpose_performance.append({**row, "ctr": local_ctr})
+    purpose_performance.sort(key=lambda item: item["impressions"], reverse=True)
+
     top_campaigns = campaigns.order_by("-impression_count", "-click_count", "-updated_at")[:10]
     top_serializer = AdvertisingCampaignSerializer(top_campaigns, many=True, context={"request": request})
 
@@ -397,6 +421,7 @@ def admin_advertising_analytics(request):
                 "ctr": ctr,
             },
             "placement_performance": placement_performance,
+            "purpose_performance": purpose_performance,
             "top_campaigns": top_serializer.data,
         },
         status=status.HTTP_200_OK,

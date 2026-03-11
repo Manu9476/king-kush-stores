@@ -35,6 +35,16 @@ class AdvertisingCampaignStatus(models.TextChoices):
     COMPLETED = "completed", "Completed"
 
 
+class AdvertisingCampaignPurpose(models.TextChoices):
+    SALES = "sales", "Sales"
+    AWARENESS = "awareness", "Awareness"
+    NEW_ARRIVAL = "new_arrival", "New Arrival"
+    FLASH_SALE = "flash_sale", "Flash Sale"
+    VENDOR_SPOTLIGHT = "vendor_spotlight", "Vendor Spotlight"
+    BRAND_PROMOTION = "brand_promotion", "Brand Promotion"
+    OTHER = "other", "Other"
+
+
 class AdvertisingEventType(models.TextChoices):
     IMPRESSION = "impression", "Impression"
     CLICK = "click", "Click"
@@ -157,6 +167,12 @@ class AdvertisingCampaign(models.Model):
         related_name="advertising_campaigns",
     )
     title = models.CharField(max_length=180)
+    purpose = models.CharField(
+        max_length=30,
+        choices=AdvertisingCampaignPurpose.choices,
+        default=AdvertisingCampaignPurpose.AWARENESS,
+        db_index=True,
+    )
     subtitle = models.CharField(max_length=220, blank=True)
     description = models.TextField(blank=True)
     target_url = models.URLField(blank=True)

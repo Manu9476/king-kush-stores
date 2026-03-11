@@ -753,6 +753,14 @@ export type AdvertisingBusinessType = "vendor" | "brand" | "agency" | "platform"
 export type AdvertisingRequestStatus = "pending_review" | "needs_info" | "approved" | "rejected";
 export type AdvertisingCampaignSource = "internal" | "external" | "vendor";
 export type AdvertisingCampaignStatus = "draft" | "scheduled" | "active" | "paused" | "rejected" | "expired" | "completed";
+export type AdvertisingCampaignPurpose =
+    | "sales"
+    | "awareness"
+    | "new_arrival"
+    | "flash_sale"
+    | "vendor_spotlight"
+    | "brand_promotion"
+    | "other";
 export type AdvertisingEventType = "impression" | "click";
 
 export interface AdvertisingPlacement {
@@ -808,6 +816,7 @@ export interface CreateAdvertisingRequestPayload {
 export interface AdvertisingCampaign {
     id: number;
     source_type: AdvertisingCampaignSource;
+    purpose: AdvertisingCampaignPurpose;
     linked_request: number | null;
     placement: AdvertisingPlacement;
     owner: number | null;
@@ -864,11 +873,19 @@ export interface AdvertisingAnalyticsResponse {
         clicks: number;
         ctr: number;
     }>;
+    purpose_performance: Array<{
+        purpose_key: AdvertisingCampaignPurpose;
+        campaigns_count: number;
+        impressions: number;
+        clicks: number;
+        ctr: number;
+    }>;
     top_campaigns: AdvertisingCampaign[];
 }
 
 export interface AdminAdvertisingCampaignPayload {
     source_type: AdvertisingCampaignSource;
+    purpose?: AdvertisingCampaignPurpose;
     linked_request?: number | null;
     placement_id: number;
     owner?: number | null;
@@ -3620,6 +3637,7 @@ export async function performAdminProductReportsBulkAction(
 function buildAdvertisingCampaignFormData(payload: Partial<AdminAdvertisingCampaignPayload>): FormData {
     const formData = new FormData();
     if (payload.source_type !== undefined) formData.append("source_type", payload.source_type);
+    if (payload.purpose !== undefined) formData.append("purpose", payload.purpose);
     if (payload.linked_request !== undefined) formData.append("linked_request", payload.linked_request ? String(payload.linked_request) : "");
     if (payload.placement_id !== undefined) formData.append("placement_id", String(payload.placement_id));
     if (payload.owner !== undefined) formData.append("owner", payload.owner ? String(payload.owner) : "");
@@ -3810,6 +3828,7 @@ export async function getAdminAdvertisingCampaigns(
         status?: string;
         placement?: string;
         source_type?: string;
+        purpose?: string;
     } = {},
 ): Promise<AdvertisingCampaign[]> {
     const searchParams = new URLSearchParams();
@@ -3817,6 +3836,7 @@ export async function getAdminAdvertisingCampaigns(
     if (params.status?.trim()) searchParams.set("status", params.status.trim());
     if (params.placement?.trim()) searchParams.set("placement", params.placement.trim());
     if (params.source_type?.trim()) searchParams.set("source_type", params.source_type.trim());
+    if (params.purpose?.trim()) searchParams.set("purpose", params.purpose.trim());
 
     const response = await requestWithApiBaseFallback(
         `/advertising/admin/campaigns/${searchParams.toString() ? `?${searchParams.toString()}` : ""}`,

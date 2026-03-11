@@ -5,6 +5,7 @@ from rest_framework import serializers
 from .models import (
     AdvertisingBusinessType,
     AdvertisingCampaign,
+    AdvertisingCampaignPurpose,
     AdvertisingCampaignSource,
     AdvertisingCampaignStatus,
     AdvertisingEvent,
@@ -157,6 +158,7 @@ class AdvertisingCampaignSerializer(serializers.ModelSerializer):
             "owner_email",
             "vendor_context",
             "title",
+            "purpose",
             "subtitle",
             "description",
             "target_url",
@@ -220,6 +222,12 @@ class AdvertisingCampaignSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid campaign source.")
         return value
 
+    def validate_purpose(self, value):
+        allowed = {choice[0] for choice in AdvertisingCampaignPurpose.choices}
+        if value not in allowed:
+            raise serializers.ValidationError("Invalid campaign purpose.")
+        return value
+
     def validate_status(self, value):
         allowed = {choice[0] for choice in AdvertisingCampaignStatus.choices}
         if value not in allowed:
@@ -246,6 +254,7 @@ class AdvertisingPublicCampaignSerializer(serializers.ModelSerializer):
             "source_type",
             "placement",
             "title",
+            "purpose",
             "subtitle",
             "description",
             "target_url",
