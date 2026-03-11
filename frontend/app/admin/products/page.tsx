@@ -43,6 +43,7 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [bulkJson, setBulkJson] = useState("");
   const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkPreviewCount, setBulkPreviewCount] = useState<number | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkVendorProfileId, setBulkVendorProfileId] = useState<number | "">("");
   const [isLoading, setIsLoading] = useState(true);
@@ -161,11 +162,30 @@ export default function AdminProductsPage() {
       const template = await getAdminProductsBulkImportTemplate(token);
       const sample = template?.template?.products || [];
       setBulkJson(JSON.stringify(sample, null, 2));
-      setBulkStatus("Template loaded. Add vendor_profile_id per product or select fallback vendor below.");
+      setBulkPreviewCount(sample.length);
+      setBulkStatus("Sample template loaded. Review fields, then validate or import.");
     } catch (err: any) {
       setBulkStatus(err?.message || "Failed to load bulk template.");
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const validateBulkJson = () => {
+    try {
+      const parsed = JSON.parse(bulkJson || "[]");
+      const rows = Array.isArray(parsed) ? parsed : parsed?.products;
+      if (!Array.isArray(rows)) {
+        throw new Error("JSON must be an array or an object with { products: [] }.");
+      }
+      if (rows.length === 0) {
+        throw new Error("No product rows found. Add at least one product.");
+      }
+      setBulkPreviewCount(rows.length);
+      setBulkStatus(`Validation passed. ${rows.length} product row(s) ready for import.`);
+    } catch (err: any) {
+      setBulkPreviewCount(null);
+      setBulkStatus(err?.message || "Invalid JSON format.");
     }
   };
 
@@ -179,11 +199,15 @@ export default function AdminProductsPage() {
       if (!Array.isArray(products)) {
         throw new Error("Bulk JSON must be an array or an object with { products: [] }.");
       }
+      if (products.length === 0) {
+        throw new Error("No product rows found. Add at least one product.");
+      }
       const result = await importAdminProductsBulk(
         token,
         products,
         typeof bulkVendorProfileId === "number" ? bulkVendorProfileId : null,
       );
+      setBulkPreviewCount(products.length);
       setBulkStatus(`Imported ${result.created_count} product(s), ${result.failed_count} failed.`);
       await load();
     } catch (err: any) {
@@ -364,7 +388,10 @@ export default function AdminProductsPage() {
 
         <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900">Bulk Import Products (JSON)</h2>
+            <h2 className="text-lg font-bold text-gray-900">Bulk Import Products</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Paste a JSON array of products, validate it, then import in one action.
+            </p>
           </div>
           <div className="space-y-3 p-5">
             {vendorOptions.length > 0 ? (
@@ -373,14 +400,18 @@ export default function AdminProductsPage() {
                 onChange={(event) => setBulkVendorProfileId(event.target.value ? Number(event.target.value) : "")}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
               >
-                <option value="">No fallback vendor (vendor_profile_id required per row)</option>
+                <option value="">No fallback vendor (each row must include vendor_profile_id)</option>
                 {vendorOptions.map((vendor) => (
                   <option key={vendor.id} value={vendor.id}>
-                    Use fallback vendor: {vendor.label}
+                    Use this fallback vendor for rows missing vendor_profile_id: {vendor.label}
                   </option>
                 ))}
               </select>
             ) : null}
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              Required per row: <span className="font-semibold">title, description, price, stock</span>. <br />
+              Optional: <span className="font-semibold">category_id, vendor_profile_id, specifications, sale_options_payload</span>.
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -388,7 +419,15 @@ export default function AdminProductsPage() {
                 disabled={bulkLoading}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
               >
-                Load Template
+                Load Sample Template
+              </button>
+              <button
+                type="button"
+                onClick={validateBulkJson}
+                disabled={!bulkJson.trim() || bulkLoading}
+                className="rounded-lg border border-blue-300 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+              >
+                Validate JSON
               </button>
               <button
                 type="button"
@@ -396,15 +435,18 @@ export default function AdminProductsPage() {
                 disabled={bulkLoading || !bulkJson.trim()}
                 className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
               >
-                {bulkLoading ? "Importing..." : "Import JSON"}
+                {bulkLoading ? "Importing..." : "Import Products"}
               </button>
             </div>
             <textarea
               value={bulkJson}
               onChange={(event) => setBulkJson(event.target.value)}
-              placeholder='Paste array of products here. Example: [{"vendor_profile_id":1,"title":"Milk",...}]'
+              placeholder='Paste JSON here. Example: [{"vendor_profile_id":1,"title":"Milk","description":"Fresh milk","price":"120.00","stock":500}]'
               className="min-h-56 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-xs"
             />
+            {bulkPreviewCount !== null ? (
+              <p className="text-xs font-semibold text-gray-700">Rows detected: {bulkPreviewCount}</p>
+            ) : null}
             {bulkStatus ? <p className="text-xs text-gray-700">{bulkStatus}</p> : null}
           </div>
         </section>
