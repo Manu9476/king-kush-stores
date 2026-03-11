@@ -8,6 +8,11 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
 from decouple import Csv, config
 
+try:
+    import dj_database_url
+except Exception:  # pragma: no cover - fallback for local envs without package installed yet
+    dj_database_url = None
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -104,13 +109,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database - Defaulting to SQLite for initial setup, we will switch to PostgreSQL soon
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database - use DATABASE_URL in production (e.g., Neon/Postgres), fallback to SQLite in local dev.
+_DATABASE_URL = config("DATABASE_URL", default="").strip()
+if _DATABASE_URL:
+    if not dj_database_url:
+        raise ImproperlyConfigured("DATABASE_URL is set but dj-database-url is not installed.")
+    DATABASES = {
+        "default": dj_database_url.parse(
+            _DATABASE_URL,
+            conn_max_age=config("DB_CONN_MAX_AGE", default=600, cast=int),
+            ssl_require=_env_bool("DB_SSL_REQUIRE", default=IS_PRODUCTION),
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -25,8 +25,8 @@ def _bool_setting(name: str, default: bool = False) -> bool:
 
 
 def _api_base() -> str:
-    env = str(_setting("MPESA_ENV", "sandbox")).strip().lower()
-    if env == "live":
+    env = str(_setting("MPESA_ENVIRONMENT", _setting("MPESA_ENV", "sandbox"))).strip().lower()
+    if env in {"live", "production"}:
         return "https://api.safaricom.co.ke"
     return "https://sandbox.safaricom.co.ke"
 
@@ -218,4 +218,3 @@ def parse_b2c_result_payload(payload: dict) -> dict:
         "receiver_party_public_name": param_map.get("ReceiverPartyPublicName"),
         "raw": payload,
     }
-
