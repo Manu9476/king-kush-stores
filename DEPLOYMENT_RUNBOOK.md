@@ -80,3 +80,20 @@ Then verify:
 - Keep previous deploy artifact active for instant rollback.
 - Revert to previous Git commit and redeploy.
 - Re-run smoke checks after rollback.
+
+## 8) Automated Database Backups
+Workflow file:
+- `.github/workflows/db-backup.yml`
+
+What it does:
+- Runs daily at `00:30 UTC` and on manual trigger.
+- Creates a PostgreSQL custom-format dump with `pg_dump`.
+- Uploads backup as a GitHub Actions artifact (30-day retention).
+
+Required GitHub Secret:
+- `BACKUP_DATABASE_URL` (full Postgres connection URL for production DB)
+
+Restore example:
+```bash
+pg_restore --clean --if-exists --no-owner --no-privileges --dbname "<TARGET_DATABASE_URL>" king-kush-<timestamp>.dump
+```

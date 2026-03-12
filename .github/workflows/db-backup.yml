@@ -1,0 +1,54 @@
+name: Daily Database Backup
+
+on:
+  schedule:
+    - cron: "30 0 * * *" # 00:30 UTC every day
+  workflow_dispatch:
+
+jobs:
+  backup-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Ensure backup DATABASE_URL is configured
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ]; then
+            echo "Missing BACKUP_DATABASE_URL secret."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create compressed database dump
+        id: dump
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          mkdir -p backup-artifacts
+          dump_file="backup-artifacts/king-kush-${timestamp}.dump"
+          pg_dump "$BACKUP_DATABASE_URL" \
+            --format=custom \
+            --no-owner \
+            --no-privileges \
+            --file "$dump_file"
+          sha256sum "$dump_file" > "${dump_file}.sha256"
+          echo "dump_file=$dump_file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backup-artifacts/
+          retention-days: 30
+
+      - name: Backup summary
+        run: |
+          echo "Created backup: ${{ steps.dump.outputs.dump_file }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Artifact retention: 30 days" >> "$GITHUB_STEP_SUMMARY"
