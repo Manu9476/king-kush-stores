@@ -18,7 +18,12 @@ function getFlashSaleProducts(products: Awaited<ReturnType<typeof getProducts>>)
 }
 
 export default async function FlashSalesPage() {
-  const products = await getProducts();
+  let products = [];
+  try {
+    products = await getProducts();
+  } catch {
+    products = [];
+  }
   const flashSaleProducts = getFlashSaleProducts(products);
 
   return (

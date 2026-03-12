@@ -5,7 +5,12 @@ import AdSlot from "../src/components/ads/AdSlot";
 import ProductScrollGallery from "../src/components/ProductScrollGallery";
 
 export default async function Home() {
-  const products = await getProducts();
+  let products = [];
+  try {
+    products = await getProducts();
+  } catch {
+    products = [];
+  }
 
   return (
     <main className="min-h-screen bg-neutral-bg pb-20">

@@ -20,7 +20,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  const allProducts = await getProducts();
+  let allProducts = [];
+  try {
+    allProducts = await getProducts();
+  } catch {
+    allProducts = [];
+  }
   const relatedProducts = allProducts
     .filter((candidate) => candidate.id !== product.id)
     .filter((candidate) => {

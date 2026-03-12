@@ -101,7 +101,12 @@ export default async function SearchPage({
   const queryNorm = normalizeText(query);
   const queryTokens = tokenize(queryNorm);
 
-  const allProducts = await getProducts();
+  let allProducts = [];
+  try {
+    allProducts = await getProducts();
+  } catch {
+    allProducts = [];
+  }
   const scored = allProducts
     .map((product) => {
       const titleScore = fieldScore(queryNorm, queryTokens, product.title || "");
