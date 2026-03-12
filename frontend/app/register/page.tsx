@@ -75,6 +75,21 @@ function RegisterPageContent() {
   }, [searchParams]);
 
   const parseBackendError = (err: any) => {
+    if (typeof err?.message === "string" && err.message.trim()) {
+      const rawMessage = err.message.trim();
+      try {
+        const djangoError = JSON.parse(rawMessage);
+        const firstErrorKey = Object.keys(djangoError)[0];
+        if (!firstErrorKey) return rawMessage;
+        const firstErrorValue = djangoError[firstErrorKey];
+        const firstErrorMessage = Array.isArray(firstErrorValue) ? firstErrorValue[0] : String(firstErrorValue);
+        const formattedKey = firstErrorKey.charAt(0).toUpperCase() + firstErrorKey.slice(1).replaceAll("_", " ");
+        return `${formattedKey}: ${firstErrorMessage}`;
+      } catch {
+        return rawMessage;
+      }
+    }
+
     try {
       const djangoError = JSON.parse(err.message);
       const firstErrorKey = Object.keys(djangoError)[0];
