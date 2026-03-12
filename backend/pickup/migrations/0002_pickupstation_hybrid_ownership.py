@@ -84,12 +84,12 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql=(
                 "UPDATE pickup_pickupstation "
-                "SET sync_name = 0, sync_address = 0, sync_contact = 0, sync_operating_hours = 0, sync_active_status = 0 "
+                "SET sync_name = FALSE, sync_address = FALSE, sync_contact = FALSE, sync_operating_hours = FALSE, sync_active_status = FALSE "
                 "WHERE ownership_type = 'platform';"
             ),
             reverse_sql=(
                 "UPDATE pickup_pickupstation "
-                "SET sync_name = 1, sync_address = 1, sync_contact = 1, sync_operating_hours = 1, sync_active_status = 1 "
+                "SET sync_name = TRUE, sync_address = TRUE, sync_contact = TRUE, sync_operating_hours = TRUE, sync_active_status = TRUE "
                 "WHERE ownership_type = 'platform';"
             ),
         ),
