@@ -20,9 +20,7 @@ jobs:
           fi
 
       - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+        run: docker --version
 
       - name: Create compressed database dump
         id: dump
@@ -33,11 +31,14 @@ jobs:
           timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
           mkdir -p backup-artifacts
           dump_file="backup-artifacts/king-kush-${timestamp}.dump"
-          pg_dump "$BACKUP_DATABASE_URL" \
+          docker run --rm \
+            -v "$PWD/backup-artifacts:/backup" \
+            postgres:17 \
+            pg_dump "$BACKUP_DATABASE_URL" \
             --format=custom \
             --no-owner \
             --no-privileges \
-            --file "$dump_file"
+            --file "/backup/$(basename "$dump_file")"
           sha256sum "$dump_file" > "${dump_file}.sha256"
           echo "dump_file=$dump_file" >> "$GITHUB_OUTPUT"
 
