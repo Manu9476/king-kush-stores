@@ -11,7 +11,6 @@ import {
   getPublicPickupStations,
   getShippingAddresses,
   initiateMpesaPayment,
-  mockConfirmMpesaPayment,
   PickupStation,
   ShippingAddress,
 } from "../../src/services/api";
@@ -47,11 +46,7 @@ export default function CheckoutPage() {
   
   // Form State - Payment
   const [mpesaNumber, setMpesaNumber] = useState(""); 
-  const [mpesaState, setMpesaState] = useState<'idle' | 'sending' | 'awaiting_pin'>('idle');
-  const [activeOrderNumber, setActiveOrderNumber] = useState("");
-  const [activePaymentId, setActivePaymentId] = useState<number | null>(null);
-  const [collectionAccount, setCollectionAccount] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [mpesaState, setMpesaState] = useState<'idle' | 'sending'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   // Financial Calculations
@@ -219,49 +214,38 @@ export default function CheckoutPage() {
     try {
       const orderIdempotencyKey = buildDeterministicKey("order", orderData as Record<string, any>);
       const order = await createOrder(orderData, token, { idempotencyKey: orderIdempotencyKey });
+      let paymentStatus: "initiated" | "pending" = "pending";
+      let paymentNotice = "Order placed successfully. Payment is pending verification.";
+
       const paymentIdempotencyKey = buildDeterministicKey("payment", {
         order_id: order.id,
         phone_number: mpesaNumber.replace(/[^0-9]/g, ""),
       });
-      const paymentResponse = await initiateMpesaPayment(
-        {
-          order_id: order.id,
-          phone_number: mpesaNumber,
-        },
-        token,
-        { idempotencyKey: paymentIdempotencyKey },
-      );
-      setActiveOrderNumber(order.order_number);
-      setActivePaymentId(paymentResponse.payment.id);
-      setCollectionAccount(paymentResponse.platform_collection_account || "");
-      setMpesaState('awaiting_pin');
+      try {
+        await initiateMpesaPayment(
+          {
+            order_id: order.id,
+            phone_number: mpesaNumber,
+          },
+          token,
+          { idempotencyKey: paymentIdempotencyKey },
+        );
+        paymentStatus = "initiated";
+        paymentNotice = "Order placed successfully. M-Pesa payment request was initiated.";
+      } catch {
+        paymentStatus = "pending";
+        paymentNotice = "Order placed successfully. M-Pesa request is temporarily unavailable; payment remains pending.";
+      }
+
+      clearCart();
+      const params = new URLSearchParams();
+      params.set("order", order.order_number);
+      params.set("payment", paymentStatus);
+      params.set("notice", paymentNotice);
+      router.push(`/order-success?${params.toString()}`);
     } catch (err: any) {
       setMpesaState('idle');
-      setError(err.message || "Failed to initiate payment. Please try again.");
-    }
-  };
-
-  const handleConfirmOrder = async () => {
-    if (!token || !activePaymentId) {
-      setError("Payment session expired. Please start checkout again.");
-      setMpesaState("idle");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const confirmation = await mockConfirmMpesaPayment(activePaymentId, token as string);
-      if (confirmation.status !== "confirmed") {
-        throw new Error(confirmation.message || "Payment is not yet confirmed.");
-      }
-      clearCart(); 
-      const orderRef = confirmation.order_number || activeOrderNumber;
-      router.push(`/order-success${orderRef ? `?order=${encodeURIComponent(orderRef)}` : ""}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to process order. Please try again.");
-    } finally {
-      setIsLoading(false);
+      setError(err.message || "Failed to place order. Please try again.");
     }
   };
 
@@ -562,6 +546,9 @@ export default function CheckoutPage() {
                     </svg>
                     Pay Online via M-Pesa
                   </button>
+                  <p className="mt-3 text-xs text-gray-600">
+                    If M-Pesa is temporarily unavailable, your order will still be placed and marked pending payment.
+                  </p>
                 </div>
               )}
 
@@ -574,44 +561,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* PIN Verification State */}
-              {mpesaState === 'awaiting_pin' && (
-                <div className="mt-4 bg-[#00A859]/5 border-2 border-[#00A859] rounded-3xl p-8 text-center animate-fade-in">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-10 h-10 text-[#00A859] animate-pulse">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                    </svg>
-                  </div>
-                  <h4 className="font-black text-[#00A859] text-3xl mb-3">Check Your Phone!</h4>
-                  <p className="text-gray-700 text-lg mb-8 leading-relaxed font-medium">
-                    We've sent a payment request to <strong className="text-gray-900 font-black text-xl bg-white px-2 py-1 rounded-md border border-gray-200 ml-1">{mpesaNumber}</strong>.<br/><br/>
-                    Please enter your M-Pesa PIN on your device to finalize.
-                  </p>
-                  {collectionAccount ? (
-                    <p className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                      Payment is being collected securely to platform account <strong>{collectionAccount}</strong> before vendor allocation.
-                    </p>
-                  ) : null}
-                  
-                  <button
-                    type="button"
-                    onClick={handleConfirmOrder}
-                    disabled={isLoading}
-                    className="w-full bg-primary hover:bg-[#152C69] text-white font-bold py-5 rounded-2xl shadow-lg transition-colors text-xl disabled:bg-gray-400"
-                  >
-                    {isLoading ? "Verifying Payment..." : "I Have Entered My PIN"}
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    onClick={() => setMpesaState('idle')}
-                    className="mt-6 text-sm font-bold text-gray-400 hover:text-gray-800 underline block w-full text-center"
-                  >
-                    Cancel or change phone number
-                  </button>
-                </div>
-              )}
-              
             </section>
           </form>
         </div>

@@ -9,21 +9,33 @@ function normalizeApiBase(rawUrl?: string): string {
 }
 
 const CONFIGURED_API_URL = normalizeApiBase(process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL);
+const DEFAULT_PRODUCTION_API_URL = "https://king-kush-stores.onrender.com/api";
 const CLIENT_PROTOCOL =
     typeof window !== "undefined" && window.location?.protocol
         ? window.location.protocol
         : "http:";
+function isLocalHostname(hostname?: string): boolean {
+    if (!hostname) return false;
+    const value = hostname.toLowerCase();
+    return value === "localhost" || value === "127.0.0.1" || value === "::1";
+}
 
-// THE FIX: We split the URLs so the Server and the Browser both get what they want!
-const SERVER_API_URL = CONFIGURED_API_URL || "http://127.0.0.1:8000/api"; // Used for fetching products
+// The API base must never silently fall back to localhost on live domains.
+const SERVER_API_URL =
+    CONFIGURED_API_URL ||
+    (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000/api" : DEFAULT_PRODUCTION_API_URL);
 const CLIENT_HOST =
     typeof window !== "undefined" && window.location?.hostname
         ? window.location.hostname
         : "localhost";
-const CLIENT_API_URL = CONFIGURED_API_URL || "http://127.0.0.1:8000/api"; // Used for auth and cart
+const CLIENT_API_URL =
+    CONFIGURED_API_URL ||
+    (typeof window !== "undefined" && !isLocalHostname(CLIENT_HOST)
+        ? DEFAULT_PRODUCTION_API_URL
+        : "http://127.0.0.1:8000/api");
 const BACKEND_URL = CONFIGURED_API_URL
     ? CONFIGURED_API_URL.replace(/\/api$/, "")
-    : "http://127.0.0.1:8000";
+    : CLIENT_API_URL.replace(/\/api$/, "");
 
 function getStoredAccessToken(): string | null {
     if (typeof window === "undefined") return null;
@@ -101,12 +113,18 @@ function appendProductPayload(formData: FormData, payload: Partial<VendorProduct
 }
 
 function getApiBaseCandidates(): string[] {
+    const includeLocalFallbacks = isLocalHostname(CLIENT_HOST);
     const candidates = [
         CONFIGURED_API_URL,
         CLIENT_API_URL,
-        `${CLIENT_PROTOCOL}//${CLIENT_HOST}:8000/api`,
-        `${CLIENT_PROTOCOL}//localhost:8000/api`,
-        `${CLIENT_PROTOCOL}//127.0.0.1:8000/api`,
+        DEFAULT_PRODUCTION_API_URL,
+        ...(includeLocalFallbacks
+            ? [
+                  `${CLIENT_PROTOCOL}//${CLIENT_HOST}:8000/api`,
+                  `${CLIENT_PROTOCOL}//localhost:8000/api`,
+                  `${CLIENT_PROTOCOL}//127.0.0.1:8000/api`,
+              ]
+            : []),
     ].filter(Boolean);
     return Array.from(new Set(candidates));
 }
