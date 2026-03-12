@@ -1324,49 +1324,59 @@ export interface CreateOrderPayload {
 // ==========================================
 
 export async function getProducts(): Promise<Product[]> {
-    try {
-        const response = await fetch(`${SERVER_API_URL}/products/`, {
-            next: { revalidate: 60 },
-        });
+    const productApiBases = Array.from(
+        new Set([SERVER_API_URL, CONFIGURED_API_URL, CLIENT_API_URL].filter(Boolean)),
+    );
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    let lastError: Error | null = null;
+    for (const base of productApiBases) {
+        try {
+            const response = await fetch(`${base}/products/`, {
+                next: { revalidate: 60 },
+            });
+            if (!response.ok) {
+                lastError = new Error(`Products API returned ${response.status} from ${base}.`);
+                continue;
+            }
 
-        const products = await response.json();
-        
-        return products.map((product: any) => {
-            const rawSlug = typeof product.slug === "string" ? product.slug.trim() : "";
-            const isSafeSlug = rawSlug.length > 0 && /^[a-zA-Z0-9_-]+$/.test(rawSlug);
-            if (!isSafeSlug) {
-                product.slug = String(product.id);
-            }
-            product.sale_type = product.sale_type || "single_item";
-            product.base_unit_label = product.base_unit_label || "item";
-            product.base_quantity_value = String(product.base_quantity_value ?? "1");
-            product.stock_unit_label = product.stock_unit_label || "unit";
-            product.auto_price_calculation = product.auto_price_calculation !== false;
-            product.sale_options = Array.isArray(product.sale_options) ? product.sale_options : [];
-            if (product.default_sale_option_id == null && product.sale_options.length > 0) {
-                const explicitDefault = product.sale_options.find((row: any) => row.is_default);
-                product.default_sale_option_id = explicitDefault?.id ?? product.sale_options[0]?.id ?? null;
-            }
-            if (!product.display_price_label) {
-                product.display_price_label = `${product.effective_price || product.price} / ${product.base_unit_label}`;
-            }
-            if (product.image && typeof product.image === 'string' && !product.image.startsWith('http')) {
-                product.image = `${BACKEND_URL}${product.image}`;
-            }
-            if (product.images && Array.isArray(product.images)) {
-                product.images.forEach((img: any) => {
-                    if (img.image && typeof img.image === 'string' && !img.image.startsWith('http')) {
-                        img.image = `${BACKEND_URL}${img.image}`;
-                    }
-                });
-            }
-            return product as Product;
-        });
-    } catch {
-        return [];
+            const products = await response.json();
+            return products.map((product: any) => {
+                const rawSlug = typeof product.slug === "string" ? product.slug.trim() : "";
+                const isSafeSlug = rawSlug.length > 0 && /^[a-zA-Z0-9_-]+$/.test(rawSlug);
+                if (!isSafeSlug) {
+                    product.slug = String(product.id);
+                }
+                product.sale_type = product.sale_type || "single_item";
+                product.base_unit_label = product.base_unit_label || "item";
+                product.base_quantity_value = String(product.base_quantity_value ?? "1");
+                product.stock_unit_label = product.stock_unit_label || "unit";
+                product.auto_price_calculation = product.auto_price_calculation !== false;
+                product.sale_options = Array.isArray(product.sale_options) ? product.sale_options : [];
+                if (product.default_sale_option_id == null && product.sale_options.length > 0) {
+                    const explicitDefault = product.sale_options.find((row: any) => row.is_default);
+                    product.default_sale_option_id = explicitDefault?.id ?? product.sale_options[0]?.id ?? null;
+                }
+                if (!product.display_price_label) {
+                    product.display_price_label = `${product.effective_price || product.price} / ${product.base_unit_label}`;
+                }
+                if (product.image && typeof product.image === 'string' && !product.image.startsWith('http')) {
+                    product.image = `${BACKEND_URL}${product.image}`;
+                }
+                if (product.images && Array.isArray(product.images)) {
+                    product.images.forEach((img: any) => {
+                        if (img.image && typeof img.image === 'string' && !img.image.startsWith('http')) {
+                            img.image = `${BACKEND_URL}${img.image}`;
+                        }
+                    });
+                }
+                return product as Product;
+            });
+        } catch (error: any) {
+            lastError = error instanceof Error ? error : new Error("Failed to fetch products.");
+        }
     }
+
+    throw lastError || new Error("Failed to fetch products.");
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
