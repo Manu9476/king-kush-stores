@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 
 from .rbac import ALL_ADMIN_PERMISSION_CODES
+from .vendor_profile_utils import get_user_vendor_profile
 
 
 def is_super_admin(user) -> bool:
@@ -81,7 +82,7 @@ class IsApprovedVendor(BasePermission):
         if not (user and user.is_authenticated and user.role == "vendor"):
             return False
 
-        profile = getattr(user, "vendor_profile", None)
+        profile = get_user_vendor_profile(user)
         return bool(profile and profile.approval_status == "approved" and profile.is_approved)
 
 

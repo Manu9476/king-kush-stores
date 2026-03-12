@@ -2,6 +2,8 @@ from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers
 
+from users.vendor_profile_utils import get_user_vendor_profile
+
 from .models import (
     AdvertisingBusinessType,
     AdvertisingCampaign,
@@ -67,7 +69,7 @@ class AdvertisingRequestCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get("request")
         user = request.user if request and request.user.is_authenticated else None
-        vendor_profile = getattr(user, "vendor_profile", None) if user else None
+        vendor_profile = get_user_vendor_profile(user) if user else None
         return AdvertisingRequest.objects.create(
             requester=user,
             vendor_profile=vendor_profile,

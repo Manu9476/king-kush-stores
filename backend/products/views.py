@@ -11,6 +11,7 @@ from orders.models import OrderItem
 from users.models import VendorProfile
 from users.permissions import IsApprovedVendor, IsMarketplaceAdmin, has_admin_permission
 from users.rbac import log_admin_activity
+from users.vendor_profile_utils import get_user_vendor_profile
 
 from promotions.services import attach_live_offers_to_products
 
@@ -130,12 +131,13 @@ def get_product(request, pk):
         is_admin = bool(
             user and user.is_authenticated and user.role == "admin" and has_admin_permission(user, "products.view")
         )
+        vendor_profile = get_user_vendor_profile(user)
         is_owner_vendor = bool(
             user
             and user.is_authenticated
             and user.role == "vendor"
-            and getattr(user, "vendor_profile", None)
-            and product.vendor_id == user.vendor_profile.id
+            and vendor_profile
+            and product.vendor_id == vendor_profile.id
         )
         if not (is_admin or is_owner_vendor):
             if not product.is_active or product.vendor.approval_status != "approved" or not product.vendor.is_approved:

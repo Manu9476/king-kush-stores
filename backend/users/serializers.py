@@ -5,6 +5,7 @@ from django.utils.text import slugify
 
 from .models import AdminActivityLog, StaffAssignment, StaffRole, VendorProfile
 from .permissions import get_admin_permissions, is_super_admin
+from .vendor_profile_utils import get_user_vendor_profile
 from .rbac import (
     ALL_ADMIN_PERMISSION_CODES,
     modules_from_permissions,
@@ -26,7 +27,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["last_name"] = user.last_name or ""
         token["role"] = user.role
 
-        vendor_profile = getattr(user, "vendor_profile", None)
+        vendor_profile = get_user_vendor_profile(user)
         token["vendor_approval_status"] = vendor_profile.approval_status if vendor_profile else None
         token["vendor_is_approved"] = bool(vendor_profile and vendor_profile.is_approved)
         token["admin_level"] = user.admin_level if user.role == "admin" else None

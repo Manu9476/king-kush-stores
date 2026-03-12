@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from orders.models import Order
 from users.permissions import IsMarketplaceAdmin, has_admin_permission, is_super_admin
 from users.rbac import log_admin_activity
+from users.vendor_profile_utils import get_user_vendor_profile
 
 from .models import PickupOrderOperation, PickupStation, PickupStationAssignment
 from .serializers import (
@@ -26,7 +27,7 @@ def _station_scope(user):
         }
 
     if user and user.is_authenticated and user.role == "vendor":
-        vendor_profile = getattr(user, "vendor_profile", None)
+        vendor_profile = get_user_vendor_profile(user)
         if vendor_profile and vendor_profile.is_approved:
             station_ids = list(
                 PickupStation.objects.filter(ownership_type="vendor", vendor_profile=vendor_profile).values_list("id", flat=True)
@@ -45,7 +46,7 @@ def _station_scope(user):
 
 
 def _can_operate_stations(user) -> bool:
-    vendor_profile = getattr(user, "vendor_profile", None) if user and user.is_authenticated else None
+    vendor_profile = get_user_vendor_profile(user) if user and user.is_authenticated else None
     return bool(
         is_super_admin(user)
         or has_admin_permission(user, "pickup.manage")

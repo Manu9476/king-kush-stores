@@ -39,6 +39,7 @@ from .serializers import (
     VendorProfileUpdateSerializer,
     build_admin_capabilities_payload,
 )
+from .vendor_profile_utils import get_user_vendor_profile
 
 User = get_user_model()
 
@@ -48,7 +49,7 @@ def _ensure_vendor_profile(user):
     Backfills a missing VendorProfile for legacy accounts that were promoted
     to vendor role after signup.
     """
-    profile = getattr(user, "vendor_profile", None)
+    profile = get_user_vendor_profile(user)
     if profile or user.role != "vendor":
         return profile
 
@@ -89,7 +90,7 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
 
         response_message = "User created successfully. You can now log in."
-        vendor_profile = getattr(user, "vendor_profile", None)
+        vendor_profile = get_user_vendor_profile(user)
         if vendor_profile:
             response_message = (
                 "Vendor application submitted successfully. "
