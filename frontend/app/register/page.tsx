@@ -75,8 +75,17 @@ function RegisterPageContent() {
   }, [searchParams]);
 
   const parseBackendError = (err: any) => {
-    if (typeof err?.message === "string" && err.message.trim()) {
-      const rawMessage = err.message.trim();
+    const rawFromError =
+      typeof err === "string"
+        ? err
+        : typeof err?.message === "string"
+          ? err.message
+          : typeof err?.detail === "string"
+            ? err.detail
+            : "";
+
+    if (rawFromError.trim()) {
+      const rawMessage = rawFromError.trim();
       try {
         const djangoError = JSON.parse(rawMessage);
         const firstErrorKey = Object.keys(djangoError)[0];
