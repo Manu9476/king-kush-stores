@@ -21,7 +21,7 @@ function getFlashSaleProducts(products: Awaited<ReturnType<typeof getProducts>>)
 export const dynamic = "force-dynamic";
 
 export default async function FlashSalesPage() {
-  let products = [];
+  let products: Awaited<ReturnType<typeof getProducts>> = [];
   try {
     products = await getProducts();
   } catch {
