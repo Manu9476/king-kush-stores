@@ -3,6 +3,7 @@ import ProductScrollGallery from "@/components/ProductScrollGallery";
 import { getProducts } from "@/services/api";
 
 function getFlashSaleProducts(products: Awaited<ReturnType<typeof getProducts>>) {
+  if (!Array.isArray(products)) return [];
   const promoProducts = products.filter((product) => {
     const hasPromoFlag = Boolean(product.promotion_active);
     const hasSavingsPercent = Number(product.savings_percent || 0) > 0;
@@ -16,6 +17,8 @@ function getFlashSaleProducts(products: Awaited<ReturnType<typeof getProducts>>)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 24);
 }
+
+export const dynamic = "force-dynamic";
 
 export default async function FlashSalesPage() {
   let products = [];
