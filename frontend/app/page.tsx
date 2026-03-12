@@ -5,7 +5,7 @@ import AdSlot from "../src/components/ads/AdSlot";
 import ProductScrollGallery from "../src/components/ProductScrollGallery";
 
 export default async function Home() {
-  let products = [];
+  let products: Awaited<ReturnType<typeof getProducts>> = [];
   try {
     products = await getProducts();
   } catch {

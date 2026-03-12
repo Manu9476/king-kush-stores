@@ -101,7 +101,7 @@ export default async function SearchPage({
   const queryNorm = normalizeText(query);
   const queryTokens = tokenize(queryNorm);
 
-  let allProducts = [];
+  let allProducts: Awaited<ReturnType<typeof getProducts>> = [];
   try {
     allProducts = await getProducts();
   } catch {

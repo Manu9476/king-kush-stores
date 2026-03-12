@@ -20,7 +20,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  let allProducts = [];
+  let allProducts: Awaited<ReturnType<typeof getProducts>> = [];
   try {
     allProducts = await getProducts();
   } catch {
