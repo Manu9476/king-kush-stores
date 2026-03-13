@@ -32,6 +32,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 # Environment mode
 ENVIRONMENT = config("ENVIRONMENT", default="development").strip().lower()
 IS_PRODUCTION = ENVIRONMENT in {"production", "prod", "live"}
+USE_S3_MEDIA = _env_bool("USE_S3_MEDIA", default=False)
 
 # SECURITY WARNING: keep the secret key used in production secret.
 _SECRET_KEY_FROM_ENV = config("SECRET_KEY", default="")
@@ -80,6 +81,8 @@ INSTALLED_APPS = [
     'pickup',
     'receipts',
 ]
+if USE_S3_MEDIA:
+    INSTALLED_APPS.append("storages")
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -166,6 +169,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Media files (Product Images, Vendor Logos, etc.)
+# Default local storage is fine for dev, but not durable on ephemeral hosts.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -175,9 +184,59 @@ STORAGES = {
     },
 }
 
-# Media files (Product Images, Vendor Logos, etc.)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+if USE_S3_MEDIA:
+    AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="").strip()
+    AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="").strip()
+    AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="").strip()
+    AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="").strip() or None
+    AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="").strip() or None
+    AWS_S3_CUSTOM_DOMAIN = config("AWS_S3_CUSTOM_DOMAIN", default="").strip() or None
+    AWS_S3_SIGNATURE_VERSION = config("AWS_S3_SIGNATURE_VERSION", default="s3v4").strip() or None
+    AWS_MEDIA_LOCATION = config("AWS_MEDIA_LOCATION", default="media").strip("/") or "media"
+    AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", default=False)
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+    _S3_MEDIA_URL = config("S3_MEDIA_URL", default="").strip()
+
+    _missing_s3 = [
+        name
+        for name, value in {
+            "AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY_ID,
+            "AWS_SECRET_ACCESS_KEY": AWS_SECRET_ACCESS_KEY,
+            "AWS_STORAGE_BUCKET_NAME": AWS_STORAGE_BUCKET_NAME,
+        }.items()
+        if not value
+    ]
+    if _missing_s3:
+        raise ImproperlyConfigured(
+            f"USE_S3_MEDIA=True but required S3 vars are missing: {', '.join(_missing_s3)}"
+        )
+
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "region_name": AWS_S3_REGION_NAME,
+            "endpoint_url": AWS_S3_ENDPOINT_URL,
+            "custom_domain": AWS_S3_CUSTOM_DOMAIN,
+            "signature_version": AWS_S3_SIGNATURE_VERSION,
+            "default_acl": AWS_DEFAULT_ACL,
+            "querystring_auth": AWS_QUERYSTRING_AUTH,
+            "file_overwrite": AWS_S3_FILE_OVERWRITE,
+            "location": AWS_MEDIA_LOCATION,
+            "object_parameters": AWS_S3_OBJECT_PARAMETERS,
+        },
+    }
+
+    if _S3_MEDIA_URL:
+        MEDIA_URL = _S3_MEDIA_URL if _S3_MEDIA_URL.endswith("/") else f"{_S3_MEDIA_URL}/"
+    elif AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN.rstrip('/')}/{AWS_MEDIA_LOCATION}/"
+    elif AWS_S3_ENDPOINT_URL:
+        MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/{AWS_MEDIA_LOCATION}/"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

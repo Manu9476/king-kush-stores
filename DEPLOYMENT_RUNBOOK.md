@@ -43,6 +43,42 @@ Recommended free start:
 
 Set API base URL env vars to your deployed backend domain.
 
+## 3.1) Permanent Product Image Storage (Important)
+Why images disappeared:
+- Your backend is on Render free web service.
+- Local uploads in `backend/media/` are stored on ephemeral filesystem.
+- After rebuild/redeploy/restart, those files can be lost.
+- DB rows still exist, but file URLs return 404, so frontend shows placeholders.
+
+Permanent fix:
+- Use object storage for media files (S3-compatible): AWS S3 / Cloudflare R2 / Backblaze B2.
+- Keep static files on WhiteNoise, media on bucket.
+
+Backend env vars for permanent media:
+- `USE_S3_MEDIA=True`
+- `AWS_ACCESS_KEY_ID=<key>`
+- `AWS_SECRET_ACCESS_KEY=<secret>`
+- `AWS_STORAGE_BUCKET_NAME=<bucket>`
+- `AWS_S3_REGION_NAME=<region>` (optional for some providers)
+- `AWS_S3_ENDPOINT_URL=<endpoint>` (required for R2/B2; optional for AWS)
+- `AWS_S3_CUSTOM_DOMAIN=<cdn-domain>` (optional)
+- `S3_MEDIA_URL=<optional full media base url>`
+- `AWS_MEDIA_LOCATION=media` (optional)
+
+Frontend env vars:
+- `NEXT_PUBLIC_API_BASE_URL=https://king-kush-stores.onrender.com/api`
+- `NEXT_PUBLIC_MEDIA_BASE_URL=<your media host base>` (optional but recommended)
+
+After setting env vars:
+```bash
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+```
+
+Note:
+- Existing missing files from old ephemeral storage cannot be recovered unless you had a backup.
+- Re-upload current product images once object storage is enabled.
+
 ## 4) CI Pipeline
 CI is defined in:
 - `.github/workflows/ci.yml`

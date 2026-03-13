@@ -1,25 +1,63 @@
-// frontend/next.config.mjs
+import type { NextConfig } from "next";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+function parseHostname(urlValue: string | undefined): string | null {
+  if (!urlValue) return null;
+  try {
+    return new URL(urlValue).hostname;
+  } catch {
+    return null;
+  }
+}
+
+const apiHost = parseHostname(process.env.NEXT_PUBLIC_API_BASE_URL);
+const mediaHost = parseHostname(process.env.NEXT_PUBLIC_MEDIA_BASE_URL);
+const extraHosts = Array.from(
+  new Set(
+    [
+      "localhost",
+      "127.0.0.1",
+      "king-kush-stores.onrender.com",
+      "res.cloudinary.com",
+      apiHost,
+      mediaHost,
+    ].filter(Boolean) as string[],
+  ),
+);
+
+const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+  {
+    protocol: "https",
+    hostname: "**.onrender.com",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
+    hostname: "**.vercel.app",
+    pathname: "/**",
+  },
+];
+
+for (const host of extraHosts) {
+  remotePatterns.push(
+    {
+      protocol: "https",
+      hostname: host,
+      pathname: "/**",
+    },
+    {
+      protocol: "http",
+      hostname: host,
+      pathname: "/**",
+    },
+  );
+}
+
+const nextConfig: NextConfig = {
   images: {
-    // THIS IS THE FIX: Tells Next.js to let the browser load local images directly
-    unoptimized: true, 
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-        pathname: '/**', 
-      },
-      {
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '8000',
-        pathname: '/**',
-      }
-    ],
+    unoptimized: true,
+    remotePatterns,
   },
 };
 
 export default nextConfig;
+

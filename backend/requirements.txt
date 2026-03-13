@@ -4,6 +4,8 @@ django-cors-headers==4.9.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 dj-database-url==2.2.0
+boto3==1.37.11
+django-storages==1.14.5
 gunicorn==23.0.0
 pillow==12.1.1
 psycopg2-binary==2.9.11
