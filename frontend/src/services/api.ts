@@ -1633,6 +1633,32 @@ export async function releaseAdminExpiredReservations(
     return await response.json();
 }
 
+export async function rebuildAdminVendorSplits(
+    token: string,
+    payload: { limit?: number } = {},
+): Promise<{
+    processed_orders: number;
+    repaired_orders: number;
+    remaining_missing_orders: number;
+    failed_order_ids: number[];
+    detail: string;
+}> {
+    const response = await requestWithApiBaseFallback(
+        "/orders/admin/orders/rebuild-vendor-splits/",
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to rebuild vendor split records."));
+    }
+    return await response.json();
+}
+
 export async function getCategories(): Promise<Category[]> {
     const response = await fetch(`${CLIENT_API_URL}/products/categories/`, {
         method: "GET",

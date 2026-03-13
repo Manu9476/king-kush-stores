@@ -15,6 +15,7 @@ urlpatterns = [
     path('list/', views.get_all_orders, name='order-list'),
     path('admin/orders/<int:order_id>/', views.admin_order_detail, name='order-admin-detail'),
     path('admin/orders/release-expired-reservations/', views.admin_release_expired_reservations, name='order-admin-release-expired-reservations'),
+    path('admin/orders/rebuild-vendor-splits/', views.admin_rebuild_vendor_splits, name='order-admin-rebuild-vendor-splits'),
     path('admin/orders/<int:order_id>/refund/', views.admin_order_refund, name='order-admin-refund'),
     path('admin/finance/summary/', views.admin_finance_dashboard, name='order-admin-finance-summary'),
     path('admin/finance/payments/', views.admin_marketplace_payments, name='order-admin-finance-payments'),

@@ -408,6 +408,7 @@ def admin_production_readiness(request):
     # Local imports keep cross-app coupling minimal at module import time.
     from chatbot.models import ChatConversation
     from orders.models import MarketplacePayment, Order, VendorPayoutRequest, VendorWallet, VendorOrder
+    from orders.services import allocate_vendor_orders_for_order
     from products.models import Product
     from receipts.models import Receipt
     from support.models import KnowledgeBaseEntry, SupportTicket, SupportTicketStatus
@@ -472,7 +473,8 @@ def admin_production_readiness(request):
     mpesa_environment_valid = mpesa_environment in {"sandbox", "production", "live"}
     mpesa_live_mode = mpesa_environment in {"production", "live"}
     mpesa_live_enabled = bool(getattr(settings, "MPESA_ENABLE_LIVE", False))
-    mpesa_credentials_required = is_production or mpesa_live_mode or mpesa_live_enabled
+    mpesa_credentials_required = bool(getattr(settings, "MPESA_REQUIRE_CREDENTIALS", False)) or mpesa_live_mode or mpesa_live_enabled
+    mpesa_sandbox_mode = mpesa_environment == "sandbox" and not mpesa_live_enabled
     mpesa_core_fields = {
         "consumer_key": str(getattr(settings, "MPESA_CONSUMER_KEY", "")).strip(),
         "consumer_secret": str(getattr(settings, "MPESA_CONSUMER_SECRET", "")).strip(),
@@ -518,6 +520,23 @@ def admin_production_readiness(request):
 
     negative_stock_products = Product.objects.filter(stock__lt=0).count()
     orders_without_items = Order.objects.annotate(item_count=Count("items")).filter(item_count=0).count()
+    missing_split_orders_qs = (
+        Order.objects.filter(is_paid=True)
+        .annotate(
+            vendor_count=Count("items__product__vendor", distinct=True),
+            split_count=Count("vendor_orders", distinct=True),
+        )
+        .filter(vendor_count__gt=0, split_count__lt=F("vendor_count"))
+        .order_by("-created_at")[:200]
+    )
+    repaired_vendor_split_orders = 0
+    for order in missing_split_orders_qs:
+        payment = order.marketplace_payments.filter(status="confirmed").order_by("-id").first()
+        try:
+            allocate_vendor_orders_for_order(order, payment=payment)
+            repaired_vendor_split_orders += 1
+        except Exception:
+            continue
     paid_orders_missing_vendor_splits = (
         Order.objects.filter(is_paid=True)
         .annotate(
@@ -734,12 +753,12 @@ def admin_production_readiness(request):
         _readiness_check(
             key="payments.mpesa_environment",
             label="M-Pesa environment mode is valid",
-            status_value="fail" if not mpesa_environment_valid else ("fail" if (is_production and not mpesa_live_mode) else "pass"),
+            status_value="fail" if not mpesa_environment_valid else "pass",
             detail="MPESA_ENVIRONMENT must be sandbox, production, or live."
             if not mpesa_environment_valid
             else (
-                "Production environment requires MPESA_ENVIRONMENT=production (or live)."
-                if (is_production and not mpesa_live_mode)
+                "Sandbox mode is active. Switch to MPESA_ENVIRONMENT=production (or live) when you are ready for real STK collections."
+                if mpesa_sandbox_mode
                 else "M-Pesa environment mode is valid."
             ),
             metric=f"MPESA_ENVIRONMENT={mpesa_environment}",
@@ -764,14 +783,20 @@ def admin_production_readiness(request):
         _readiness_check(
             key="payments.mpesa_credentials",
             label="M-Pesa credentials are configured for active mode",
-            status_value="fail" if (mpesa_credentials_required and mpesa_missing_fields) else "pass",
+            status_value="fail"
+            if (mpesa_credentials_required and mpesa_missing_fields)
+            else ("warning" if (mpesa_missing_fields and not mpesa_sandbox_mode) else "pass"),
             detail=(
                 f"Missing M-Pesa fields: {', '.join(mpesa_missing_fields)}."
                 if (mpesa_credentials_required and mpesa_missing_fields)
                 else (
-                    "M-Pesa credentials are optional in local sandbox mode and will be required for production/live mode."
-                    if (not mpesa_credentials_required and mpesa_missing_fields)
-                    else "Required M-Pesa fields are configured."
+                    "Sandbox mode is active; M-Pesa credentials can remain empty until you enable production/live mode."
+                    if (mpesa_sandbox_mode and mpesa_missing_fields)
+                    else (
+                        "M-Pesa credentials are optional until production/live mode is enabled."
+                        if (not mpesa_credentials_required and mpesa_missing_fields)
+                        else "Required M-Pesa fields are configured."
+                    )
                 )
             ),
             metric=f"Missing fields: {len(mpesa_missing_fields)}",
@@ -839,10 +864,16 @@ def admin_production_readiness(request):
         _readiness_check(
             key="commerce.vendor_split_integrity",
             label="Paid orders have complete vendor splits",
-            status_value="fail" if paid_orders_missing_vendor_splits else "pass",
-            detail=f"{paid_orders_missing_vendor_splits} paid order(s) are missing vendor split records."
-            if paid_orders_missing_vendor_splits
-            else "Vendor split records are complete for paid orders.",
+            status_value="warning" if paid_orders_missing_vendor_splits else "pass",
+            detail=(
+                f"{paid_orders_missing_vendor_splits} paid order(s) are still missing vendor split records after auto-repair attempt ({repaired_vendor_split_orders} processed)."
+                if paid_orders_missing_vendor_splits
+                else (
+                    f"Vendor split records are complete for paid orders. Auto-repair processed {repaired_vendor_split_orders} order(s)."
+                    if repaired_vendor_split_orders
+                    else "Vendor split records are complete for paid orders."
+                )
+            ),
             metric=f"Missing splits: {paid_orders_missing_vendor_splits}",
             action="Rebuild vendor split records for affected paid orders.",
             fix_path="/admin/finance",

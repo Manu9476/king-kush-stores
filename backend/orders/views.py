@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
-from django.db.models import Sum
+from django.db.models import Count, F, Sum
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -67,6 +67,21 @@ from .services import (
     release_order_stock_reservation,
     release_vendor_earnings_for_order,
 )
+
+
+def _paid_orders_missing_vendor_split_queryset(limit: int | None = None):
+    queryset = (
+        Order.objects.filter(is_paid=True)
+        .annotate(
+            vendor_count=Count("items__product__vendor", distinct=True),
+            split_count=Count("vendor_orders", distinct=True),
+        )
+        .filter(vendor_count__gt=0, split_count__lt=F("vendor_count"))
+        .order_by("-created_at")
+    )
+    if limit:
+        return queryset[:limit]
+    return queryset
 
 
 @api_view(["POST"])
@@ -599,6 +614,74 @@ def admin_release_expired_reservations(request):
         {
             "released_orders": released_count,
             "detail": f"Released {released_count} expired stock reservation(s).",
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsMarketplaceAdmin])
+def admin_rebuild_vendor_splits(request):
+    if not (has_admin_permission(request.user, "finance.manage") or has_admin_permission(request.user, "orders.edit")):
+        return Response({"detail": "Missing permission: finance.manage or orders.edit"}, status=status.HTTP_403_FORBIDDEN)
+
+    limit_raw = request.data.get("limit", 400)
+    try:
+        limit = int(limit_raw)
+    except (TypeError, ValueError):
+        limit = 400
+    limit = max(1, min(limit, 2000))
+
+    target_orders = list(_paid_orders_missing_vendor_split_queryset(limit=limit))
+    processed = len(target_orders)
+    repaired = 0
+    failed_order_ids: list[int] = []
+
+    for order in target_orders:
+        payment = order.marketplace_payments.filter(status="confirmed").order_by("-id").first()
+        try:
+            allocate_vendor_orders_for_order(order, payment=payment)
+            vendor_count = (
+                OrderItem.objects.filter(order=order, product__vendor__isnull=False)
+                .values("product__vendor_id")
+                .distinct()
+                .count()
+            )
+            split_count = VendorOrder.objects.filter(order=order).count()
+            if vendor_count > 0 and split_count >= vendor_count:
+                repaired += 1
+        except Exception:
+            failed_order_ids.append(order.id)
+
+    remaining_missing = _paid_orders_missing_vendor_split_queryset().count()
+    detail = (
+        f"Processed {processed} paid order(s). Repaired {repaired}. Remaining missing split orders: {remaining_missing}."
+    )
+    if failed_order_ids:
+        detail = f"{detail} Failed IDs: {', '.join(str(order_id) for order_id in failed_order_ids[:20])}"
+
+    log_admin_activity(
+        actor=request.user,
+        action="finance.rebuild_vendor_splits",
+        description=f"Triggered paid-order vendor split rebuild. {detail}",
+        target_type="Order",
+        target_id=None,
+        metadata={
+            "processed": processed,
+            "repaired": repaired,
+            "remaining_missing": remaining_missing,
+            "failed_order_ids": failed_order_ids[:50],
+            "limit": limit,
+        },
+    )
+
+    return Response(
+        {
+            "processed_orders": processed,
+            "repaired_orders": repaired,
+            "remaining_missing_orders": remaining_missing,
+            "failed_order_ids": failed_order_ids,
+            "detail": detail,
         },
         status=status.HTTP_200_OK,
     )

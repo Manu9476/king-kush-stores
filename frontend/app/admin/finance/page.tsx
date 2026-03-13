@@ -14,6 +14,7 @@ import {
   getAdminMarketplacePayments,
   getAdminPayoutRequests,
   getAdminVendorOrders,
+  rebuildAdminVendorSplits,
   releaseAdminExpiredReservations,
   updateAdminPayoutRequest,
 } from "../../../src/services/api";
@@ -122,6 +123,22 @@ export default function AdminFinancePage() {
     }
   };
 
+  const runVendorSplitRepair = async () => {
+    if (!token || !hasAdminPermission("orders.edit")) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const result = await rebuildAdminVendorSplits(token, { limit: 800 });
+      setSuccess(result.detail);
+      await loadFinanceData();
+    } catch (err: any) {
+      setError(err?.message || "Failed to rebuild vendor split records.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const generateReceipt = async (
     entityType: "payment" | "vendor_order" | "payout_request",
     entityId: number,
@@ -162,6 +179,16 @@ export default function AdminFinancePage() {
                   className="rounded-modern border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
                 >
                   Release Expired Stock
+                </button>
+              ) : null}
+              {hasAdminPermission("orders.edit") ? (
+                <button
+                  type="button"
+                  onClick={runVendorSplitRepair}
+                  disabled={saving}
+                  className="rounded-modern border border-primary/30 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/5 disabled:opacity-60"
+                >
+                  Rebuild Vendor Splits
                 </button>
               ) : null}
               <button
