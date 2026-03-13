@@ -45,7 +45,7 @@ if IS_PRODUCTION and DEBUG:
     DEBUG = False
 
 _DEFAULT_ALLOWED_HOSTS = (
-    "kingkushstores.com,www.kingkushstores.com,api.kingkushstores.com"
+    "kingkushstores.com,www.kingkushstores.com,api.kingkushstores.com,king-kush-stores.onrender.com"
     if IS_PRODUCTION
     else "localhost,127.0.0.1,0.0.0.0"
 )
@@ -186,7 +186,10 @@ AUTH_USER_MODEL = 'users.CustomUser'
 # 2. CORS Policy
 CORS_ALLOW_ALL_ORIGINS = _env_bool("CORS_ALLOW_ALL_ORIGINS", default=False)
 _DEFAULT_CORS_ALLOWED_ORIGINS = (
-    "https://kingkushstores.com,https://www.kingkushstores.com"
+    (
+        "https://kingkushstores.com,https://www.kingkushstores.com,"
+        "https://king-kush-stores.vercel.app"
+    )
     if IS_PRODUCTION
     else (
         "http://localhost:3000,http://127.0.0.1:3000,"
@@ -206,7 +209,10 @@ _CORS_ALLOWED_ORIGIN_REGEXES = config(
         r"^http://localhost(:\d+)?$,"
         r"^http://127\.0\.0\.1(:\d+)?$"
         if not IS_PRODUCTION
-        else ""
+        else (
+            r"^https://.*\.vercel\.app$,"
+            r"^https://.*\.onrender\.com$"
+        )
     ),
     cast=Csv(),
 )
@@ -214,7 +220,10 @@ CORS_ALLOWED_ORIGIN_REGEXES = [entry for entry in _CORS_ALLOWED_ORIGIN_REGEXES i
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
     default=(
-        "https://kingkushstores.com,https://www.kingkushstores.com"
+        (
+            "https://kingkushstores.com,https://www.kingkushstores.com,"
+            "https://king-kush-stores.vercel.app,https://*.vercel.app"
+        )
         if IS_PRODUCTION
         else (
             "http://localhost:3000,http://127.0.0.1:3000,"
