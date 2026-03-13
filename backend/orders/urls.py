@@ -29,6 +29,7 @@ urlpatterns = [
     path('payment-methods/', views.payment_methods, name='payment-methods'),
     path('payment-methods/<int:payment_method_id>/', views.payment_method_detail, name='payment-method-detail'),
     path('vendor/orders/', views.vendor_orders, name='vendor-orders'),
+    path('vendor/orders/<int:order_id>/status/', views.vendor_order_status_detail, name='vendor-order-status-detail'),
     path('vendor/finance/', views.vendor_finance_summary, name='vendor-finance-summary'),
     path('vendor/payout-requests/', views.vendor_payout_requests, name='vendor-payout-requests'),
 ]

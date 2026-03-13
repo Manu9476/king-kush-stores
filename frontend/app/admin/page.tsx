@@ -19,6 +19,7 @@ import {
   getChatbotConversationDetail,
   getChatbotConversations,
   getOrders,
+  updateAdminOrder,
 } from "../../src/services/api";
 
 type DashboardTab = "overview" | "orders" | "chatbot";
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
 
   const canViewDashboard = canAccessAdminModule("dashboard") && hasAdminPermission("dashboard.view");
   const canViewOrders = hasAdminPermission("orders.view");
+  const canEditOrders = hasAdminPermission("orders.edit");
   const canViewFinance = canAccessAdminModule("finance") && hasAdminPermission("finance.view");
   const canViewCareers = hasAdminPermission("careers.view");
   const canViewVendors = hasAdminPermission("vendors.view");
@@ -80,7 +82,15 @@ export default function AdminDashboard() {
   const [selectedConversationDetail, setSelectedConversationDetail] = useState<ChatbotConversationDetail | null>(null);
   const [conversationSearchInput, setConversationSearchInput] = useState("");
   const [receiptBusyOrderId, setReceiptBusyOrderId] = useState<number | null>(null);
+  const [orderBusyId, setOrderBusyId] = useState<number | null>(null);
   const [receiptMessage, setReceiptMessage] = useState("");
+  const orderStatuses: Array<"Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled"> = [
+    "Pending",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -256,6 +266,27 @@ export default function AdminDashboard() {
       setReceiptMessage(error?.message || "Unable to generate receipt.");
     } finally {
       setReceiptBusyOrderId(null);
+    }
+  };
+
+  const updateOrderStatus = async (
+    orderId: number,
+    payload: { status?: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled"; is_paid?: boolean },
+  ) => {
+    if (!token || !canEditOrders) return;
+    setOrderBusyId(orderId);
+    setReceiptMessage("");
+    try {
+      const updated = await updateAdminOrder(token, orderId, payload);
+      setOrders((prev) => prev.map((item) => (Number(item.id) === orderId ? updated : item)));
+      setReceiptMessage(`Order ${updated.order_number} updated.`);
+      if (payload.status === "Delivered" || payload.is_paid === true || payload.is_paid === false) {
+        await loadDashboard();
+      }
+    } catch (error: any) {
+      setReceiptMessage(error?.message || "Failed to update order.");
+    } finally {
+      setOrderBusyId(null);
     }
   };
 
@@ -541,6 +572,7 @@ export default function AdminDashboard() {
                           <th className="px-5 py-3">Customer</th>
                           <th className="px-5 py-3">Created</th>
                           <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3">Paid</th>
                           <th className="px-5 py-3 text-right">Amount</th>
                           <th className="px-5 py-3 text-right">Receipt</th>
                         </tr>
@@ -552,9 +584,47 @@ export default function AdminDashboard() {
                             <td className="px-5 py-3 text-sm text-gray-700">{order.user?.email || order.shipping_address?.full_name || "N/A"}</td>
                             <td className="px-5 py-3 text-sm text-gray-600">{order.created_at ? formatDateTime(order.created_at) : "-"}</td>
                             <td className="px-5 py-3 text-sm">
-                              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(String(order.status || "Pending"))}`}>
-                                {order.status || "Pending"}
-                              </span>
+                              {canEditOrders ? (
+                                <select
+                                  value={String(order.status || "Pending")}
+                                  onChange={(event) =>
+                                    updateOrderStatus(Number(order.id), {
+                                      status: event.target.value as "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled",
+                                    })
+                                  }
+                                  disabled={orderBusyId === Number(order.id)}
+                                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 disabled:opacity-60"
+                                >
+                                  {orderStatuses.map((statusValue) => (
+                                    <option key={statusValue} value={statusValue}>
+                                      {statusValue}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(String(order.status || "Pending"))}`}>
+                                  {order.status || "Pending"}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-sm">
+                              {canEditOrders ? (
+                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(order.is_paid)}
+                                    disabled={orderBusyId === Number(order.id)}
+                                    onChange={(event) =>
+                                      updateOrderStatus(Number(order.id), {
+                                        is_paid: event.target.checked,
+                                      })
+                                    }
+                                  />
+                                  {order.is_paid ? "Paid" : "Unpaid"}
+                                </label>
+                              ) : (
+                                <span className="text-xs font-semibold text-gray-700">{order.is_paid ? "Paid" : "Unpaid"}</span>
+                              )}
                             </td>
                             <td className="px-5 py-3 text-right text-sm font-semibold text-gray-900">{formatCurrency(Number(order.total_amount || 0))}</td>
                             <td className="px-5 py-3 text-right">

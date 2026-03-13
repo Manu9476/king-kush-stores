@@ -56,6 +56,7 @@ from .services import (
     allocate_vendor_orders_for_order,
     confirm_marketplace_payment,
     ensure_vendor_wallet,
+    get_earnings_release_policy,
     get_payout_mode,
     get_platform_mpesa_account_reference,
     get_stock_reservation_expiry,
@@ -658,6 +659,18 @@ def admin_finance_dashboard(request):
     total_collected = quantize_money(
         MarketplacePayment.objects.filter(status="confirmed").aggregate(total=Sum("amount")).get("total") or Decimal("0.00")
     )
+    orders_gross_value = quantize_money(
+        Order.objects.exclude(status="Cancelled").aggregate(total=Sum("total_amount")).get("total") or Decimal("0.00")
+    )
+    orders_unpaid_value = quantize_money(
+        Order.objects.filter(is_paid=False).exclude(status="Cancelled").aggregate(total=Sum("total_amount")).get("total")
+        or Decimal("0.00")
+    )
+    orders_paid_value = quantize_money(
+        Order.objects.filter(is_paid=True).exclude(status="Cancelled").aggregate(total=Sum("total_amount")).get("total")
+        or Decimal("0.00")
+    )
+    orders_open_count = Order.objects.exclude(status__in=["Delivered", "Cancelled"]).count()
     total_commission = quantize_money(
         VendorOrder.objects.aggregate(total=Sum("platform_commission_amount")).get("total") or Decimal("0.00")
     )
@@ -679,6 +692,9 @@ def admin_finance_dashboard(request):
     merchant_account_balance = quantize_money(total_collected - total_paid_out - total_refunds)
     totals = {
         "marketplace_revenue_collected": total_collected,
+        "orders_gross_value": orders_gross_value,
+        "orders_unpaid_value": orders_unpaid_value,
+        "orders_paid_value": orders_paid_value,
         "platform_commission_earned": total_commission,
         "vendor_net_earnings": total_vendor_net,
         "vendor_payouts_completed": total_paid_out,
@@ -697,6 +713,7 @@ def admin_finance_dashboard(request):
             "open_items": {
                 "pending_payout_requests": VendorPayoutRequest.objects.filter(status__in=["requested", "approved", "under_review"]).count(),
                 "payment_disputes_or_failed": MarketplacePayment.objects.filter(status__in=["failed", "reversed"]).count(),
+                "open_orders_count": orders_open_count,
             },
             "reports": {
                 "latest_payments": MarketplacePaymentSerializer(MarketplacePayment.objects.select_related("order", "customer").order_by("-initiated_at")[:20], many=True).data,
@@ -981,6 +998,90 @@ def vendor_orders(request):
     return Response(data, status=status.HTTP_200_OK)
 
 
+def _derive_parent_order_status_from_vendor_rows(statuses: list[str]) -> str:
+    if not statuses:
+        return "Pending"
+    if all(status == "Cancelled" for status in statuses):
+        return "Cancelled"
+    if all(status == "Delivered" for status in statuses):
+        return "Delivered"
+    if any(status in {"Shipped", "Delivered"} for status in statuses):
+        return "Shipped"
+    if any(status == "Processing" for status in statuses):
+        return "Processing"
+    return "Pending"
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated, IsApprovedVendor])
+def vendor_order_status_detail(request, order_id: int):
+    vendor_profile = request.user.vendor_profile
+    new_status = str(request.data.get("status", "")).strip()
+    allowed_statuses = {"Pending", "Processing", "Shipped", "Delivered", "Cancelled"}
+    if new_status not in allowed_statuses:
+        return Response({"detail": "Invalid status. Allowed values: Pending, Processing, Shipped, Delivered, Cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        order = Order.objects.select_related("user", "shipping_address").get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    vendor_has_items = OrderItem.objects.filter(order=order, product__vendor=vendor_profile).exists()
+    if not vendor_has_items:
+        return Response({"detail": "You cannot update this order."}, status=status.HTTP_403_FORBIDDEN)
+
+    previous_order_status = order.status
+    vendor_order = VendorOrder.objects.filter(order=order, vendor=vendor_profile).first()
+    previous_vendor_status = vendor_order.status if vendor_order else None
+
+    if vendor_order:
+        vendor_order.status = new_status
+        vendor_order.save(update_fields=["status", "updated_at"])
+
+        all_vendor_statuses = list(
+            VendorOrder.objects.filter(order=order).values_list("status", flat=True)
+        )
+        derived_status = _derive_parent_order_status_from_vendor_rows(all_vendor_statuses)
+        if order.status != derived_status:
+            order.status = derived_status
+            order.save(update_fields=["status", "updated_at"])
+    else:
+        # Legacy fallback for historical rows that are not split into VendorOrder yet.
+        order.status = new_status
+        order.save(update_fields=["status", "updated_at"])
+
+    if (
+        previous_order_status != "Delivered"
+        and order.status == "Delivered"
+        and order.is_paid
+        and get_earnings_release_policy() == "on_delivery"
+    ):
+        release_vendor_earnings_for_order(order)
+
+    AccountActivity.objects.create(
+        user=request.user,
+        activity_type="vendor_order_status_update",
+        description=f"Updated order {order.order_number} status to {new_status}.",
+        metadata={
+            "order_id": order.id,
+            "order_number": order.order_number,
+            "previous_order_status": previous_order_status,
+            "new_order_status": order.status,
+            "previous_vendor_status": previous_vendor_status,
+            "new_vendor_status": new_status,
+        },
+    )
+
+    return Response(
+        {
+            "detail": f"Order {order.order_number} updated to {order.status}.",
+            "order": OrderSerializer(order).data,
+            "vendor_order_status": vendor_order.status if vendor_order else new_status,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsApprovedVendor])
 def vendor_finance_summary(request):
@@ -988,6 +1089,18 @@ def vendor_finance_summary(request):
     wallet = ensure_vendor_wallet(vendor_profile)
     vendor_orders_qs = VendorOrder.objects.filter(vendor=vendor_profile)
     totals = vendor_orders_qs.aggregate(total_sales=Sum("gross_amount"), commission_total=Sum("platform_commission_amount"), net_earnings=Sum("vendor_earning_amount"), refunded_total=Sum("refunded_amount"))
+    line_total_expr = models.ExpressionWrapper(
+        models.F("price_at_purchase") * models.F("quantity"),
+        output_field=models.DecimalField(max_digits=14, decimal_places=2),
+    )
+    placed_items_qs = OrderItem.objects.filter(product__vendor=vendor_profile).exclude(order__status="Cancelled")
+    placed_order_value = quantize_money(
+        placed_items_qs.aggregate(total=Sum(line_total_expr)).get("total") or Decimal("0.00")
+    )
+    unpaid_order_value = quantize_money(
+        placed_items_qs.filter(order__is_paid=False).aggregate(total=Sum(line_total_expr)).get("total") or Decimal("0.00")
+    )
+    open_order_count = placed_items_qs.values("order_id").distinct().count()
     payout_total = VendorPayoutRequest.objects.filter(vendor=vendor_profile, status="paid").aggregate(total=Sum("amount")).get("total") or Decimal("0.00")
     pending_payout = VendorPayoutRequest.objects.filter(vendor=vendor_profile, status__in=["requested", "approved", "under_review"]).aggregate(total=Sum("amount")).get("total") or Decimal("0.00")
     return Response(
@@ -995,6 +1108,8 @@ def vendor_finance_summary(request):
             "wallet": VendorWalletSerializer(wallet).data,
             "totals": {
                 "total_sales": str(quantize_money(totals.get("total_sales") or Decimal("0.00"))),
+                "placed_order_value": str(placed_order_value),
+                "unpaid_order_value": str(unpaid_order_value),
                 "platform_commission": str(quantize_money(totals.get("commission_total") or Decimal("0.00"))),
                 "net_earnings": str(quantize_money(totals.get("net_earnings") or Decimal("0.00"))),
                 "refunded_total": str(quantize_money(totals.get("refunded_total") or Decimal("0.00"))),
@@ -1002,6 +1117,7 @@ def vendor_finance_summary(request):
                 "pending_payout_requests": str(quantize_money(pending_payout)),
                 "withdrawable_balance": str(quantize_money(wallet.available_balance)),
                 "pending_balance": str(quantize_money(wallet.pending_balance)),
+                "open_order_count": str(open_order_count),
             },
             "recent_transactions": VendorWalletTransactionSerializer(wallet.transactions.all()[:30], many=True).data,
             "payout_history": VendorPayoutRequestSerializer(VendorPayoutRequest.objects.filter(vendor=vendor_profile).order_by("-requested_at")[:20], many=True).data,

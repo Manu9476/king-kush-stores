@@ -193,7 +193,11 @@ export default function AdminFinancePage() {
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-modern border border-gray-100 bg-white p-4">
-                  <p className="text-xs text-gray-500">Revenue Collected</p>
+                  <p className="text-xs text-gray-500">Orders Value (Placed)</p>
+                  <p className="text-lg font-bold">{formatKes(summary?.totals.orders_gross_value || summary?.totals.marketplace_revenue_collected || "0")}</p>
+                </div>
+                <div className="rounded-modern border border-gray-100 bg-white p-4">
+                  <p className="text-xs text-gray-500">Revenue Collected (Paid)</p>
                   <p className="text-lg font-bold">{formatKes(summary?.totals.marketplace_revenue_collected || "0")}</p>
                 </div>
                 <div className="rounded-modern border border-gray-100 bg-white p-4">
@@ -201,12 +205,8 @@ export default function AdminFinancePage() {
                   <p className="text-lg font-bold text-emerald-700">{formatKes(summary?.totals.merchant_account_balance || "0")}</p>
                 </div>
                 <div className="rounded-modern border border-gray-100 bg-white p-4">
-                  <p className="text-xs text-gray-500">Vendor Available Liability</p>
-                  <p className="text-lg font-bold">{formatKes(summary?.totals.vendor_wallet_available_liability || "0")}</p>
-                </div>
-                <div className="rounded-modern border border-gray-100 bg-white p-4">
-                  <p className="text-xs text-gray-500">Vendor Pending Liability</p>
-                  <p className="text-lg font-bold">{formatKes(summary?.totals.vendor_wallet_pending_liability || "0")}</p>
+                  <p className="text-xs text-gray-500">Unpaid Orders Value</p>
+                  <p className="text-lg font-bold">{formatKes(summary?.totals.orders_unpaid_value || "0")}</p>
                 </div>
               </div>
 
@@ -224,12 +224,16 @@ export default function AdminFinancePage() {
                   <p className="text-lg font-bold">{formatKes(summary?.totals.vendor_payouts_completed || "0")}</p>
                 </div>
                 <div className="rounded-modern border border-gray-100 bg-white p-4">
+                  <p className="text-xs text-gray-500">Vendor Available Liability</p>
+                  <p className="text-lg font-bold">{formatKes(summary?.totals.vendor_wallet_available_liability || "0")}</p>
+                </div>
+                <div className="rounded-modern border border-gray-100 bg-white p-4">
                   <p className="text-xs text-gray-500">Refunds</p>
                   <p className="text-lg font-bold">{formatKes(summary?.totals.refunds_total || "0")}</p>
                 </div>
                 <div className="rounded-modern border border-gray-100 bg-white p-4">
-                  <p className="text-xs text-gray-500">Pending Payout Requests</p>
-                  <p className="text-lg font-bold">{summary?.open_items.pending_payout_requests || 0}</p>
+                  <p className="text-xs text-gray-500">Open Orders</p>
+                  <p className="text-lg font-bold">{summary?.open_items.open_orders_count ?? 0}</p>
                 </div>
               </div>
 

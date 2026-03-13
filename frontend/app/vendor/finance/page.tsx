@@ -86,12 +86,20 @@ export default function VendorFinancePage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-modern border border-gray-100 bg-gray-50 p-4">
-          <p className="text-xs text-gray-500">Total Sales</p>
+          <p className="text-xs text-gray-500">Placed Orders Value</p>
+          <p className="text-lg font-bold">{formatKes(financeSummary?.totals.placed_order_value || financeSummary?.totals.total_sales || "0")}</p>
+        </div>
+        <div className="rounded-modern border border-gray-100 bg-gray-50 p-4">
+          <p className="text-xs text-gray-500">Total Sales (Paid/Split)</p>
           <p className="text-lg font-bold">{formatKes(financeSummary?.totals.total_sales || "0")}</p>
         </div>
         <div className="rounded-modern border border-gray-100 bg-gray-50 p-4">
           <p className="text-xs text-gray-500">Platform Commission</p>
           <p className="text-lg font-bold">{formatKes(financeSummary?.totals.platform_commission || "0")}</p>
+        </div>
+        <div className="rounded-modern border border-gray-100 bg-gray-50 p-4">
+          <p className="text-xs text-gray-500">Unpaid Orders Value</p>
+          <p className="text-lg font-bold">{formatKes(financeSummary?.totals.unpaid_order_value || "0")}</p>
         </div>
         <div className="rounded-modern border border-gray-100 bg-gray-50 p-4">
           <p className="text-xs text-gray-500">Pending Balance</p>

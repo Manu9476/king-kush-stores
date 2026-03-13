@@ -283,6 +283,8 @@ export interface VendorDashboardSummary {
 }
 
 export interface VendorOrderRow {
+    vendor_order_id?: number;
+    order_reference?: string;
     order_id: number;
     order_number: string;
     order_status: string;
@@ -642,6 +644,8 @@ export interface VendorFinanceSummary {
     wallet: VendorWallet;
     totals: {
         total_sales: string;
+        placed_order_value?: string;
+        unpaid_order_value?: string;
         platform_commission: string;
         net_earnings: string;
         refunded_total: string;
@@ -649,6 +653,7 @@ export interface VendorFinanceSummary {
         pending_payout_requests: string;
         withdrawable_balance: string;
         pending_balance: string;
+        open_order_count?: string;
     };
     recent_transactions: VendorWalletTransaction[];
     payout_history: VendorPayoutRequest[];
@@ -661,6 +666,9 @@ export interface VendorFinanceSummary {
 export interface AdminFinanceSummary {
     totals: {
         marketplace_revenue_collected: string;
+        orders_gross_value?: string;
+        orders_unpaid_value?: string;
+        orders_paid_value?: string;
         platform_commission_earned: string;
         vendor_net_earnings: string;
         vendor_payouts_completed: string;
@@ -676,6 +684,7 @@ export interface AdminFinanceSummary {
     open_items: {
         pending_payout_requests: number;
         payment_disputes_or_failed: number;
+        open_orders_count?: number;
     };
     reports: {
         latest_payments: MarketplacePayment[];
@@ -2783,6 +2792,8 @@ export async function getVendorOrders(token: string): Promise<VendorOrderRow[]> 
         if (typeof row?.order_reference === "string" && Array.isArray(row?.items)) {
             const orderId = Number(row.order) || 0;
             return row.items.map((item: any) => ({
+                vendor_order_id: Number(row.id) || undefined,
+                order_reference: row.order_reference || "",
                 order_id: orderId,
                 order_number: row.order_number || row.order_reference || "",
                 order_status: row.status || "Pending",
@@ -2798,8 +2809,34 @@ export async function getVendorOrders(token: string): Promise<VendorOrderRow[]> 
                 shipping_country: "",
             })) as VendorOrderRow[];
         }
-        return [row as VendorOrderRow];
+        return [
+            {
+                ...row,
+                vendor_order_id: row?.vendor_order_id ?? undefined,
+                order_reference: row?.order_reference || "",
+            } as VendorOrderRow,
+        ];
     });
+}
+
+export async function updateVendorOrderStatus(
+    token: string,
+    orderId: number,
+    payload: { status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled" },
+): Promise<{ detail: string; order: Order; vendor_order_status: string }> {
+    const response = await requestWithApiBaseFallback(
+        `/orders/vendor/orders/${orderId}/status/`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update vendor order status."));
+    }
+    return await response.json();
 }
 
 export async function getVendorFinanceSummary(token: string): Promise<VendorFinanceSummary> {
