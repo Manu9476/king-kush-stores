@@ -1330,6 +1330,7 @@ export interface CreateOrderPayload {
     shipping_address_id?: number;
     fulfillment_method?: "delivery" | "pickup";
     pickup_station_id?: number;
+    idempotency_key?: string;
     items: Array<{
         product_id: number;
         quantity: number;
@@ -1493,12 +1494,15 @@ export async function createOrder(
     token: string,
     options: { idempotencyKey?: string } = {},
 ): Promise<Order> {
+    const payload: CreateOrderPayload = {
+        ...orderData,
+        ...(options.idempotencyKey ? { idempotency_key: options.idempotencyKey } : {}),
+    };
     const response = await requestWithApiBaseFallback(
         "/orders/create/",
         {
             method: "POST",
-            headers: options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : undefined,
-            body: JSON.stringify(orderData),
+            body: JSON.stringify(payload),
         },
         token,
     );

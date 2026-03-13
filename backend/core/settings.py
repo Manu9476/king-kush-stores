@@ -7,6 +7,7 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
 from decouple import Csv, config
+from corsheaders.defaults import default_headers
 
 try:
     import dj_database_url
@@ -50,6 +51,9 @@ _DEFAULT_ALLOWED_HOSTS = (
     else "localhost,127.0.0.1,0.0.0.0"
 )
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default=_DEFAULT_ALLOWED_HOSTS, cast=Csv())
+if IS_PRODUCTION:
+    _required_hosts = {"king-kush-stores.onrender.com"}
+    ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, *_required_hosts]))
 
 # Application definition
 INSTALLED_APPS = [
@@ -217,6 +221,20 @@ _CORS_ALLOWED_ORIGIN_REGEXES = config(
     cast=Csv(),
 )
 CORS_ALLOWED_ORIGIN_REGEXES = [entry for entry in _CORS_ALLOWED_ORIGIN_REGEXES if str(entry).strip()]
+if IS_PRODUCTION:
+    _required_cors_origins = {
+        "https://king-kush-stores.vercel.app",
+    }
+    _required_cors_regexes = {
+        r"^https://.*\.vercel\.app$",
+        r"^https://.*\.onrender\.com$",
+    }
+    CORS_ALLOWED_ORIGINS = list(dict.fromkeys([*CORS_ALLOWED_ORIGINS, *_required_cors_origins]))
+    CORS_ALLOWED_ORIGIN_REGEXES = list(dict.fromkeys([*CORS_ALLOWED_ORIGIN_REGEXES, *_required_cors_regexes]))
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "idempotency-key",
+]
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
     default=(
@@ -234,6 +252,13 @@ CSRF_TRUSTED_ORIGINS = config(
     ),
     cast=Csv(),
 )
+if IS_PRODUCTION:
+    _required_csrf_origins = {
+        "https://king-kush-stores.vercel.app",
+        "https://*.vercel.app",
+        "https://king-kush-stores.onrender.com",
+    }
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([*CSRF_TRUSTED_ORIGINS, *_required_csrf_origins]))
 if IS_PRODUCTION:
     CORS_ALLOW_ALL_ORIGINS = False
 
