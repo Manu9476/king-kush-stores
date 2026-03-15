@@ -104,6 +104,7 @@ export default function AdminDashboard() {
     }
     if (isAuthenticated && userRole === "admin" && !canViewDashboard) {
       if (canAccessAdminModule("finance")) router.push("/admin/finance");
+      else if (canAccessAdminModule("orders")) router.push("/admin/orders");
       else if (canAccessAdminModule("pos")) router.push("/admin/pos");
       else if (canAccessAdminModule("receipts")) router.push("/admin/receipts");
       else if (canAccessAdminModule("vendors")) router.push("/admin/vendors");
@@ -306,6 +307,13 @@ export default function AdminDashboard() {
       show: canAccessAdminModule("dashboard"),
       count: "Live checklist",
       meta: "Production blockers, warnings, and launch score",
+    },
+    {
+      href: "/admin/orders",
+      label: "Orders Desk",
+      show: canAccessAdminModule("orders"),
+      count: `${orders.length} total`,
+      meta: "Update statuses and payment state",
     },
     {
       href: "/admin/pos",

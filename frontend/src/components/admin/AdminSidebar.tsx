@@ -26,6 +26,7 @@ import { useAuth } from "../../context/AuthContext";
 type AdminSidebarProps = {
   active:
     | "dashboard"
+    | "orders"
     | "readiness"
     | "pos"
     | "finance"
@@ -69,6 +70,15 @@ const NAV_ITEMS: NavItem[] = [
     module: "dashboard",
     group: "core",
     icon: FiGrid,
+  },
+  {
+    key: "orders",
+    href: "/admin/orders",
+    label: "Orders",
+    description: "Track and update customer orders",
+    module: "orders",
+    group: "operations",
+    icon: FiPackage,
   },
   {
     key: "readiness",
