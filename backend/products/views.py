@@ -471,6 +471,48 @@ def admin_product_detail(request, product_id: int):
     return Response(ProductSerializer(product, context={"request": request}).data, status=status.HTTP_200_OK)
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsMarketplaceAdmin])
+def admin_product_generate_barcode(request, product_id: int):
+    if not has_admin_permission(request.user, "products.edit"):
+        return Response({"detail": "Missing permission: products.edit"}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    force = str(request.data.get("force", "")).strip().lower() in {"1", "true", "yes"}
+    if product.barcode and not force:
+        return Response(
+            {
+                "detail": "Product already has a barcode. Use force=true to replace it.",
+                "barcode": product.barcode,
+                "product": ProductSerializer(product, context={"request": request}).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    previous_barcode = product.barcode
+    product.barcode = Product.generate_unique_barcode()
+    product.save(update_fields=["barcode", "updated_at"])
+    log_admin_activity(
+        actor=request.user,
+        action="product.barcode.generate",
+        description=f"Generated barcode for '{product.title}'.",
+        target_type="Product",
+        target_id=str(product.id),
+        metadata={"previous_barcode": previous_barcode, "new_barcode": product.barcode},
+    )
+    return Response(
+        {
+            "detail": "Barcode generated successfully.",
+            "barcode": product.barcode,
+            "product": ProductSerializer(product, context={"request": request}).data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated, IsMarketplaceAdmin])
 def admin_products_bulk_import(request):

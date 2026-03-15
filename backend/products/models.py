@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
+import random
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -70,9 +71,20 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @staticmethod
+    def generate_unique_barcode(length: int = 13) -> str:
+        # Generate a numeric, scanner-friendly barcode string.
+        while True:
+            candidate = "".join(str(random.randint(0, 9)) for _ in range(length))
+            if not Product.objects.filter(barcode=candidate).exists():
+                return candidate
+
     def clean(self):
         if self.base_quantity_value is None or Decimal(str(self.base_quantity_value)) <= Decimal("0"):
             raise ValidationError({"base_quantity_value": "Base quantity value must be greater than zero."})
+        if self.barcode is not None:
+            normalized = str(self.barcode).strip()
+            self.barcode = normalized or None
 
     def save(self, *args, **kwargs):
         # Automatically generate a URL-friendly slug from the product title

@@ -14,6 +14,7 @@ urlpatterns = [
     path('admin/categories/', views.admin_categories, name='admin-categories'),
     path('admin/products/bulk-import/', views.admin_products_bulk_import, name='admin-products-bulk-import'),
     path('admin/products/<int:product_id>/', views.admin_product_detail, name='admin-product-detail'),
+    path('admin/products/<int:product_id>/generate-barcode/', views.admin_product_generate_barcode, name='admin-product-generate-barcode'),
     
     # THE FIX: The route for a single product: http://127.0.0.1:8000/api/products/1/
     path('<str:pk>/', views.get_product, name='product-detail'),

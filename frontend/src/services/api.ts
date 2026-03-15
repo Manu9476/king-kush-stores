@@ -2800,6 +2800,27 @@ export async function updateAdminProduct(
     return await response.json();
 }
 
+export async function generateAdminProductBarcode(
+    token: string,
+    productId: number,
+    options: { force?: boolean } = {},
+): Promise<VendorProduct> {
+    const response = await requestWithApiBaseFallback(
+        `/products/admin/products/${productId}/generate-barcode/`,
+        {
+            method: "POST",
+            body: JSON.stringify({ force: Boolean(options.force) }),
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to generate product barcode."));
+    }
+    const data = await response.json();
+    return data?.product as VendorProduct;
+}
+
 export async function deleteAdminProduct(token: string, productId: number): Promise<void> {
     const response = await requestWithAuthRetry(`${CLIENT_API_URL}/products/admin/products/${productId}/`, {
         method: "DELETE",

@@ -10,6 +10,7 @@ import {
   createAdminCategory,
   createAdminProduct,
   deleteAdminProduct,
+  generateAdminProductBarcode,
   getAdminProducts,
   getAdminProductsBulkImportTemplate,
   getAdminVendorApplications,
@@ -46,6 +47,8 @@ export default function AdminProductsPage() {
   const [bulkPreviewCount, setBulkPreviewCount] = useState<number | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkVendorProfileId, setBulkVendorProfileId] = useState<number | "">("");
+  const [barcodeBusyProductId, setBarcodeBusyProductId] = useState<number | null>(null);
+  const [selectedLabelProductIds, setSelectedLabelProductIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -259,6 +262,127 @@ export default function AdminProductsPage() {
     }
   };
 
+  const generateBarcodeForProduct = async (productId: number) => {
+    if (!token || !canEditProductsUI) return;
+    setBarcodeBusyProductId(productId);
+    setError("");
+    setSuccess("");
+    try {
+      const updated = await generateAdminProductBarcode(token, productId);
+      setProducts((prev) => prev.map((item) => (item.id === productId ? updated : item)));
+      setSuccess(`Barcode generated for ${updated.title}: ${updated.barcode || "-"}`);
+    } catch (err: any) {
+      setError(err?.message || "Failed to generate barcode.");
+    } finally {
+      setBarcodeBusyProductId(null);
+    }
+  };
+
+  const toggleLabelSelection = (productId: number) => {
+    setSelectedLabelProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId],
+    );
+  };
+
+  const selectedLabelProducts = useMemo(
+    () => products.filter((product) => selectedLabelProductIds.includes(product.id)),
+    [products, selectedLabelProductIds],
+  );
+
+  const renderBarcodeSvg = (value: string): string => {
+    const code = String(value || "").trim();
+    if (!code) return "";
+    const digits = code.split("").map((char) => Number(char)).filter((n) => Number.isFinite(n));
+    const barWidth = 2;
+    const gap = 1;
+    const height = 48;
+    let x = 0;
+    let bars = "";
+    digits.forEach((digit) => {
+      const pattern = [1 + (digit % 3), 1 + ((digit + 1) % 3), 1 + ((digit + 2) % 3), 1 + ((digit + 3) % 3)];
+      pattern.forEach((segment, segmentIndex) => {
+        if (segmentIndex % 2 === 0) {
+          const width = segment * barWidth;
+          bars += `<rect x="${x}" y="0" width="${width}" height="${height}" fill="#111827" />`;
+          x += width;
+        } else {
+          x += segment * gap;
+        }
+      });
+      x += gap * 2;
+    });
+    const width = Math.max(120, x + 4);
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="barcode">${bars}</svg>`;
+  };
+
+  const printSelectedLabels = () => {
+    if (selectedLabelProducts.length === 0) {
+      setError("Select at least one product label to print.");
+      return;
+    }
+
+    const printable = selectedLabelProducts
+      .map((product) => ({
+        title: product.title,
+        price: Number(product.price || 0).toFixed(2),
+        barcode: (product.barcode || "").trim(),
+      }))
+      .filter((product) => product.barcode.length > 0);
+
+    if (printable.length === 0) {
+      setError("Selected products do not have barcodes yet. Generate barcodes first.");
+      return;
+    }
+
+    const labelHtml = printable
+      .map(
+        (product) => `
+          <div class="label">
+            <div class="title">${product.title}</div>
+            <div class="price">KES ${product.price}</div>
+            <div class="barcode-svg">${renderBarcodeSvg(product.barcode)}</div>
+            <div class="barcode-text">${product.barcode}</div>
+          </div>
+        `,
+      )
+      .join("");
+
+    const win = window.open("", "_blank", "width=1200,height=900");
+    if (!win) {
+      setError("Popup blocked. Allow popups to print labels.");
+      return;
+    }
+
+    win.document.write(`
+      <!doctype html>
+      <html>
+      <head>
+        <title>Product Barcode Labels</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 16px; color: #111827; }
+          .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+          .label { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; break-inside: avoid; }
+          .title { font-weight: 700; font-size: 14px; margin-bottom: 4px; min-height: 34px; }
+          .price { font-weight: 700; color: #1d4ed8; margin-bottom: 6px; }
+          .barcode-svg { margin-top: 4px; }
+          .barcode-text { margin-top: 4px; font-size: 12px; letter-spacing: 1px; font-weight: 700; }
+          @media print {
+            body { margin: 8px; }
+            .grid { gap: 8px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h2>King-Kush Product Barcode Labels</h2>
+        <div class="grid">${labelHtml}</div>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  };
+
   if (!isAuthenticated || userRole !== "admin" || !canViewProducts) return null;
 
   return (
@@ -354,6 +478,7 @@ export default function AdminProductsPage() {
                 onCancel={() => setEditingProduct(null)}
                 initialValues={{
                   title: editingProduct.title,
+                  barcode: editingProduct.barcode || "",
                   description: editingProduct.description,
                   specifications: editingProduct.specifications || "",
                   price: editingProduct.price,
@@ -453,7 +578,18 @@ export default function AdminProductsPage() {
 
         <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900">All Products ({products.length})</h2>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h2 className="text-lg font-bold text-gray-900">All Products ({products.length})</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={printSelectedLabels}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Print Selected Labels ({selectedLabelProductIds.length})
+                </button>
+              </div>
+            </div>
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-gray-500">Loading products...</div>
@@ -466,12 +602,28 @@ export default function AdminProductsPage() {
                   <div>
                     <p className="font-semibold text-gray-900">{product.title}</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Vendor: {product.vendor_name} | KES {Number(product.price).toFixed(2)} | {product.display_price_label || product.base_unit_label} | Stock: {product.stock} {product.stock_unit_label} | {product.category?.name || "Uncategorized"}
+                      Vendor: {product.vendor_name} | KES {Number(product.price).toFixed(2)} | {product.display_price_label || product.base_unit_label} | Stock: {product.stock} {product.stock_unit_label} | {product.category?.name || "Uncategorized"} | Barcode: {product.barcode || "Not set"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-1 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedLabelProductIds.includes(product.id)}
+                        onChange={() => toggleLabelSelection(product.id)}
+                      />
+                      Label
+                    </label>
                     {canEditProductsUI ? (
                       <>
+                        <button
+                          type="button"
+                          onClick={() => generateBarcodeForProduct(product.id)}
+                          disabled={barcodeBusyProductId === product.id}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 disabled:opacity-60"
+                        >
+                          {barcodeBusyProductId === product.id ? "Generating..." : product.barcode ? "Regenerate Barcode" : "Generate Barcode"}
+                        </button>
                         <button
                           type="button"
                           onClick={() => toggleProductActive(product)}
