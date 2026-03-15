@@ -13,6 +13,7 @@ urlpatterns = [
     
     # Door 2: For YOU (the admin) fetching the list for the dashboard
     path('list/', views.get_all_orders, name='order-list'),
+    path('admin/pos/create/', views.admin_pos_create_order, name='order-admin-pos-create'),
     path('admin/orders/<int:order_id>/', views.admin_order_detail, name='order-admin-detail'),
     path('admin/orders/release-expired-reservations/', views.admin_release_expired_reservations, name='order-admin-release-expired-reservations'),
     path('admin/orders/rebuild-vendor-splits/', views.admin_rebuild_vendor_splits, name='order-admin-rebuild-vendor-splits'),

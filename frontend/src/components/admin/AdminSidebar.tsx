@@ -18,6 +18,7 @@ import {
   FiSearch,
   FiSettings,
   FiShield,
+  FiShoppingBag,
   FiZap,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
@@ -26,6 +27,7 @@ type AdminSidebarProps = {
   active:
     | "dashboard"
     | "readiness"
+    | "pos"
     | "finance"
     | "receipts"
     | "vendors"
@@ -76,6 +78,15 @@ const NAV_ITEMS: NavItem[] = [
     module: "dashboard",
     group: "core",
     icon: FiCheckCircle,
+  },
+  {
+    key: "pos",
+    href: "/admin/pos",
+    label: "POS",
+    description: "In-store checkout and order capture",
+    module: "pos",
+    group: "operations",
+    icon: FiShoppingBag,
   },
   {
     key: "finance",

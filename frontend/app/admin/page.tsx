@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const { isAuthenticated, userEmail, token, userRole, hasAdminPermission, canAccessAdminModule } = useAuth();
 
   const canViewDashboard = canAccessAdminModule("dashboard") && hasAdminPermission("dashboard.view");
+  const canViewPos = canAccessAdminModule("pos") && hasAdminPermission("pos.view");
   const canViewOrders = hasAdminPermission("orders.view");
   const canEditOrders = hasAdminPermission("orders.edit");
   const canViewFinance = canAccessAdminModule("finance") && hasAdminPermission("finance.view");
@@ -103,6 +104,7 @@ export default function AdminDashboard() {
     }
     if (isAuthenticated && userRole === "admin" && !canViewDashboard) {
       if (canAccessAdminModule("finance")) router.push("/admin/finance");
+      else if (canAccessAdminModule("pos")) router.push("/admin/pos");
       else if (canAccessAdminModule("receipts")) router.push("/admin/receipts");
       else if (canAccessAdminModule("vendors")) router.push("/admin/vendors");
       else if (canAccessAdminModule("products")) router.push("/admin/products");
@@ -304,6 +306,13 @@ export default function AdminDashboard() {
       show: canAccessAdminModule("dashboard"),
       count: "Live checklist",
       meta: "Production blockers, warnings, and launch score",
+    },
+    {
+      href: "/admin/pos",
+      label: "POS Desk",
+      show: canViewPos,
+      count: "Counter Sales",
+      meta: "Create in-store orders and sync with vendors",
     },
     {
       href: "/admin/finance",

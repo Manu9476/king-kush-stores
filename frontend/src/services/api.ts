@@ -1347,6 +1347,26 @@ export interface CreateOrderPayload {
     }>;
 }
 
+export interface AdminPosCreateOrderPayload {
+    customer_email?: string;
+    customer_name?: string;
+    customer_phone?: string;
+    notes?: string;
+    payment_method?: "cash" | "mpesa" | "card" | "bank_transfer" | "pending";
+    mark_as_paid?: boolean;
+    idempotency_key?: string;
+    items: Array<{
+        product_id: number;
+        quantity: number;
+        sale_option_id?: number | null;
+    }>;
+}
+
+export interface AdminPosCreateOrderResponse {
+    detail: string;
+    order: Order;
+}
+
 // ==========================================
 // --- PRODUCT API CALLS (SERVER) ---
 // ==========================================
@@ -1521,6 +1541,26 @@ export async function createOrder(
         throw new Error(extractApiErrorMessage(errorData, "Failed to process order."));
     }
     return (await response.json()) as Order;
+}
+
+export async function createAdminPosOrder(
+    token: string,
+    payload: AdminPosCreateOrderPayload,
+): Promise<AdminPosCreateOrderResponse> {
+    const response = await requestWithApiBaseFallback(
+        "/orders/admin/pos/create/",
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to create POS order."));
+    }
+    return await response.json();
 }
 
 export async function initiateMpesaPayment(

@@ -199,6 +199,7 @@ class MarketplacePayment(models.Model):
     )
     PROVIDER_CHOICES = (
         ("mpesa", "M-Pesa"),
+        ("cash", "Cash"),
         ("card", "Card"),
         ("paypal", "PayPal"),
         ("bank_transfer", "Bank Transfer"),

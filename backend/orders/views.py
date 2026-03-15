@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from products.models import Product
-from users.models import AccountActivity
+from users.models import AccountActivity, CustomUser
 from users.permissions import IsApprovedVendor, IsMarketplaceAdmin, has_admin_permission
 from users.rbac import log_admin_activity
 
@@ -82,6 +82,59 @@ def _paid_orders_missing_vendor_split_queryset(limit: int | None = None):
     if limit:
         return queryset[:limit]
     return queryset
+
+
+def _resolve_pos_customer(customer_email: str, customer_name: str, customer_phone: str) -> CustomUser:
+    email = (customer_email or "").strip().lower()
+    if email:
+        user = CustomUser.objects.filter(email__iexact=email, is_active=True).first()
+        if not user:
+            raise ValidationError("Customer email not found. Ask the customer to register first, or leave email empty for a walk-in sale.")
+        return user
+
+    walkin_email = "walkin@king-kush.local"
+    walkin_user, created = CustomUser.objects.get_or_create(
+        email=walkin_email,
+        defaults={
+            "first_name": "Walk-in",
+            "last_name": "Customer",
+            "phone_number": customer_phone or "",
+            "role": "customer",
+            "is_active": True,
+        },
+    )
+    if created:
+        walkin_user.set_password(uuid.uuid4().hex)
+        walkin_user.save(update_fields=["password"])
+    return walkin_user
+
+
+def _resolve_pos_shipping_address(user: CustomUser, customer_name: str, customer_phone: str) -> ShippingAddress:
+    default_address = ShippingAddress.objects.filter(user=user, is_default=True).order_by("-id").first()
+    if default_address:
+        return default_address
+
+    address = ShippingAddress.objects.filter(
+        user=user,
+        address_line_1="In-store counter sale",
+        city="In-store",
+    ).order_by("-id").first()
+    if address:
+        return address
+
+    full_name = (customer_name or f"{user.first_name} {user.last_name}".strip() or user.email).strip()
+    phone_number = (customer_phone or user.phone_number or "0000000000").strip()
+    return ShippingAddress.objects.create(
+        user=user,
+        full_name=full_name,
+        phone_number=phone_number,
+        address_line_1="In-store counter sale",
+        address_line_2="POS Checkout",
+        city="In-store",
+        postal_code="00000",
+        country="Kenya",
+        is_default=not ShippingAddress.objects.filter(user=user, is_default=True).exists(),
+    )
 
 
 @api_view(["POST"])
@@ -528,6 +581,227 @@ def mock_confirm_mpesa_payment(request, payment_id: int):
 def my_marketplace_payments(request):
     queryset = MarketplacePayment.objects.filter(customer=request.user).select_related("order").order_by("-initiated_at")
     return Response(MarketplacePaymentSerializer(queryset, many=True).data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsMarketplaceAdmin])
+def admin_pos_create_order(request):
+    if not has_admin_permission(request.user, "orders.edit"):
+        return Response({"detail": "Missing permission: orders.edit"}, status=status.HTTP_403_FORBIDDEN)
+
+    data = request.data or {}
+    items_payload = data.get("items") or []
+    if not isinstance(items_payload, list) or len(items_payload) == 0:
+        return Response({"detail": "At least one POS item is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    customer_email = str(data.get("customer_email") or "").strip()
+    customer_name = str(data.get("customer_name") or "").strip()
+    customer_phone = str(data.get("customer_phone") or "").strip()
+    notes = str(data.get("notes") or "").strip()
+    payment_method = str(data.get("payment_method") or "cash").strip().lower()
+    mark_as_paid = bool(data.get("mark_as_paid", True))
+    idempotency_key = str(
+        request.headers.get("Idempotency-Key")
+        or data.get("idempotency_key")
+        or ""
+    ).strip()[:120]
+
+    allowed_payment_methods = {"cash", "mpesa", "card", "bank_transfer", "pending"}
+    if payment_method not in allowed_payment_methods:
+        return Response(
+            {"detail": "Invalid payment_method. Use cash, mpesa, card, bank_transfer, or pending."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if payment_method == "pending":
+        mark_as_paid = False
+
+    try:
+        customer_user = _resolve_pos_customer(customer_email, customer_name, customer_phone)
+        with transaction.atomic():
+            if idempotency_key:
+                existing_order = (
+                    Order.objects.filter(user=customer_user, idempotency_key=idempotency_key)
+                    .order_by("-id")
+                    .first()
+                )
+                if existing_order:
+                    return Response(OrderSerializer(existing_order).data, status=status.HTTP_200_OK)
+
+            shipping_address = _resolve_pos_shipping_address(customer_user, customer_name, customer_phone)
+
+            total_amount = Decimal("0.00")
+            order_items_to_create = []
+            for item in items_payload:
+                product_id = item.get("product_id")
+                sale_option_id = item.get("sale_option_id")
+                try:
+                    quantity = int(item.get("quantity", 0))
+                except (TypeError, ValueError):
+                    raise ValidationError("Item quantity must be a valid number.")
+                if not product_id or quantity <= 0:
+                    raise ValidationError("Each POS item requires product_id and quantity > 0.")
+
+                product = Product.objects.select_related("vendor").get(id=product_id)
+                if not product.is_active or not product.vendor.is_approved:
+                    raise ValidationError(f"{product.title} is currently unavailable.")
+
+                selected_option = product.resolve_sale_option(sale_option_id)
+                stock_units_per_purchase = selected_option.stock_units_consumed if selected_option else 1
+                total_stock_required = stock_units_per_purchase * quantity
+                if product.stock < total_stock_required:
+                    available_purchase_units = product.stock // max(stock_units_per_purchase, 1)
+                    option_label = selected_option.label if selected_option else product.base_unit_label
+                    raise ValidationError(
+                        f"Not enough stock for {product.title} ({option_label}). Available: {available_purchase_units}, Requested: {quantity}"
+                    )
+
+                unit_price = product.get_unit_price_for_option(selected_option)
+                line_total = quantize_money(unit_price * quantity)
+                total_amount = quantize_money(total_amount + line_total)
+                order_items_to_create.append(
+                    {
+                        "product": product,
+                        "quantity": quantity,
+                        "price_at_purchase": unit_price,
+                        "sale_option": selected_option,
+                        "sale_option_label": selected_option.label if selected_option else "",
+                        "sale_option_quantity_value": selected_option.quantity_value if selected_option else None,
+                        "sale_option_quantity_unit": selected_option.quantity_unit if selected_option else "",
+                        "sale_option_stock_units_consumed": stock_units_per_purchase,
+                        "stock_units_total": total_stock_required,
+                    }
+                )
+
+            order = Order.objects.create(
+                user=customer_user,
+                shipping_address=shipping_address,
+                fulfillment_method="delivery",
+                total_amount=total_amount,
+                status="Processing" if mark_as_paid else "Pending",
+                is_paid=mark_as_paid,
+                paid_at=timezone.now() if mark_as_paid else None,
+                payment_verified_at=timezone.now() if mark_as_paid else None,
+                stock_reservation_expires_at=None if mark_as_paid else get_stock_reservation_expiry(),
+                idempotency_key=idempotency_key or None,
+            )
+
+            stock_updates: dict[int, dict] = {}
+            for item in order_items_to_create:
+                OrderItem.objects.create(
+                    order=order,
+                    product=item["product"],
+                    quantity=item["quantity"],
+                    price_at_purchase=item["price_at_purchase"],
+                    original_price=item["price_at_purchase"],
+                    sale_option=item.get("sale_option"),
+                    sale_option_label=item.get("sale_option_label") or "",
+                    sale_option_quantity_value=item.get("sale_option_quantity_value"),
+                    sale_option_quantity_unit=item.get("sale_option_quantity_unit") or "",
+                    sale_option_stock_units_consumed=item.get("sale_option_stock_units_consumed") or 1,
+                )
+                stock_item = item["product"]
+                if stock_item.id not in stock_updates:
+                    stock_updates[stock_item.id] = {"product": stock_item, "qty": 0}
+                stock_updates[stock_item.id]["qty"] += item["stock_units_total"]
+
+            for stock_payload in stock_updates.values():
+                stock_item = stock_payload["product"]
+                stock_item.stock -= stock_payload["qty"]
+                stock_item.save(update_fields=["stock", "updated_at"])
+
+            payment = None
+            if mark_as_paid:
+                payment_provider = "bank_transfer" if payment_method == "pending" else payment_method
+                payment = MarketplacePayment.objects.create(
+                    order=order,
+                    customer=customer_user,
+                    provider=payment_provider,
+                    payment_channel="pos_counter",
+                    amount=order.total_amount,
+                    currency="KES",
+                    phone_number=customer_phone or None,
+                    status="confirmed",
+                    confirmed_at=timezone.now(),
+                    transaction_id=f"POS-{uuid.uuid4().hex[:16].upper()}",
+                    result_code="0",
+                    result_desc="POS payment recorded by cashier.",
+                    metadata={
+                        "source": "admin_pos",
+                        "cashier_email": request.user.email,
+                        "payment_method": payment_method,
+                        "notes": notes,
+                    },
+                    idempotency_key=f"pos-payment:{idempotency_key}" if idempotency_key else None,
+                )
+
+            allocate_vendor_orders_for_order(order, payment=payment)
+            if mark_as_paid and get_earnings_release_policy() == "on_payment":
+                release_vendor_earnings_for_order(order)
+
+        AccountActivity.objects.create(
+            user=customer_user,
+            activity_type="order_create",
+            description=f"POS order {order.order_number} created.",
+            metadata={
+                "order_number": order.order_number,
+                "order_source": "pos",
+                "created_by_admin": request.user.email,
+            },
+        )
+        log_admin_activity(
+            actor=request.user,
+            action="pos.order.create",
+            description=f"Created POS order {order.order_number}.",
+            target_type="Order",
+            target_id=str(order.id),
+            metadata={
+                "customer_email": customer_user.email,
+                "payment_method": payment_method,
+                "mark_as_paid": mark_as_paid,
+                "total_amount": str(order.total_amount),
+            },
+        )
+
+        from receipts.services import issue_receipt_safe
+
+        issue_receipt_safe(
+            category="customer",
+            receipt_type="customer_order",
+            owner_type="customer",
+            owner_user=customer_user,
+            actor=request.user,
+            customer=customer_user,
+            order=order,
+            related_entity_type="order",
+            related_entity_id=str(order.id),
+            related_reference=order.order_number,
+            gross_amount=order.total_amount,
+            net_amount=order.total_amount,
+            payment_method=payment_method if mark_as_paid else "pending_payment",
+            summary={
+                "order_number": order.order_number,
+                "order_source": "pos",
+                "cashier_email": request.user.email,
+                "payment_status": "confirmed" if mark_as_paid else "pending",
+                "notes": notes,
+            },
+            event_key=f"pos_order_created:{order.id}",
+        )
+
+        return Response(
+            {
+                "detail": "POS order created successfully.",
+                "order": OrderSerializer(order).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    except ValidationError as exc:
+        return Response({"detail": exc.detail}, status=status.HTTP_400_BAD_REQUEST)
+    except Product.DoesNotExist:
+        return Response({"detail": "One or more selected products were not found."}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({"detail": f"Failed to create POS order: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])
