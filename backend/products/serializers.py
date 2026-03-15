@@ -327,6 +327,8 @@ class VendorProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         vendor_profile: VendorProfile = self.context["vendor_profile"]
         options_payload = validated_data.pop("sale_options_payload", [])
+        if not validated_data.get("barcode"):
+            validated_data["barcode"] = Product.generate_unique_barcode()
         product = Product.objects.create(vendor=vendor_profile, **validated_data)
         if options_payload:
             _sync_product_sale_options(product, options_payload)
