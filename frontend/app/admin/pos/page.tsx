@@ -70,6 +70,7 @@ export default function AdminPosPage() {
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<PosLineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | "">("");
+  const [barcodeInput, setBarcodeInput] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -124,6 +125,28 @@ export default function AdminPosPage() {
       },
     ]);
     setSelectedProductId("");
+  };
+
+  const addLineByBarcode = () => {
+    const code = barcodeInput.trim();
+    if (!code) return;
+    const product = products.find((row) => (row.barcode || "").trim() === code);
+    if (!product) {
+      setError(`No product found for barcode "${code}".`);
+      return;
+    }
+    const defaultOption =
+      getActiveSaleOptions(product).find((row) => row.is_default) || getActiveSaleOptions(product)[0] || null;
+    setLines((prev) => [
+      ...prev,
+      {
+        product_id: product.id,
+        quantity: 1,
+        sale_option_id: defaultOption?.id ?? null,
+      },
+    ]);
+    setBarcodeInput("");
+    setError("");
   };
 
   const updateLine = (index: number, patch: Partial<PosLineItem>) => {
@@ -263,6 +286,34 @@ export default function AdminPosPage() {
 
           <section className="rounded-modern border border-gray-200 bg-white p-5 space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Items</h2>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+              <div className="flex items-center gap-2 md:col-span-2">
+                <input
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addLineByBarcode();
+                    }
+                  }}
+                  placeholder="Scan barcode here (scanner acts like keyboard)"
+                  className="w-full rounded-modern border border-gray-300 px-3 py-2 outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={addLineByBarcode}
+                  disabled={!barcodeInput.trim() || loading}
+                  className="rounded-modern border border-primary/30 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60"
+                >
+                  Scan Add
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 md:col-span-1 md:text-right">
+                Tip: Click inside the barcode box once, then scan physically.
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2 md:flex-row">
               <select
                 value={selectedProductId}
@@ -388,4 +439,3 @@ export default function AdminPosPage() {
     </div>
   );
 }
-

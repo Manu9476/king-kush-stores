@@ -292,6 +292,7 @@ def vendor_products_bulk_import(request):
                     "products": [
                         {
                             "title": "Fresh Milk",
+                            "barcode": "6291041500213",
                             "description": "Pasteurized milk",
                             "specifications": "Keep refrigerated",
                             "price": "120.00",
@@ -484,6 +485,7 @@ def admin_products_bulk_import(request):
                         {
                             "vendor_profile_id": 1,
                             "title": "Eggs",
+                            "barcode": "6153001234567",
                             "description": "Farm fresh eggs",
                             "price": "25.00",
                             "stock": 300,

@@ -410,7 +410,7 @@ export default function AdminProductsPage() {
             ) : null}
             <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
               Required per row: <span className="font-semibold">title, description, price, stock</span>. <br />
-              Optional: <span className="font-semibold">category_id, vendor_profile_id, specifications, sale_options_payload</span>.
+              Optional: <span className="font-semibold">barcode, category_id, vendor_profile_id, specifications, sale_options_payload</span>.
             </div>
             <div className="flex flex-wrap gap-2">
               <button

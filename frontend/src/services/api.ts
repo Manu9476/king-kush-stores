@@ -85,6 +85,7 @@ function extractApiErrorMessage(errorData: any, fallback: string): string {
 
 function appendProductPayload(formData: FormData, payload: Partial<VendorProductPayload>) {
     if (payload.title !== undefined) formData.append("title", payload.title);
+    if (payload.barcode !== undefined) formData.append("barcode", payload.barcode || "");
     if (payload.description !== undefined) formData.append("description", payload.description);
     if (payload.specifications !== undefined) formData.append("specifications", payload.specifications || "");
     if (payload.price !== undefined) formData.append("price", String(payload.price));
@@ -320,6 +321,7 @@ export interface VendorProduct {
     vendor_name: string;
     title: string;
     slug: string;
+    barcode?: string | null;
     description: string;
     specifications?: string | null;
     price: string;
@@ -378,6 +380,7 @@ export interface VendorProductSaleOptionPayload {
 
 export interface VendorProductPayload {
     title: string;
+    barcode?: string | null;
     description: string;
     specifications?: string;
     price: string;

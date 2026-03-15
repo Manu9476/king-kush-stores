@@ -54,6 +54,7 @@ export default function ProductEditorPanel({
 }: ProductEditorPanelProps) {
   const [form, setForm] = useState({
     title: "",
+    barcode: "",
     description: "",
     specifications: "",
     price: "",
@@ -78,6 +79,7 @@ export default function ProductEditorPanel({
     setForm((prev) => ({
       ...prev,
       title: initialValues.title || "",
+      barcode: initialValues.barcode || "",
       description: initialValues.description || "",
       specifications: initialValues.specifications || "",
       price: initialValues.price || "",
@@ -174,6 +176,7 @@ export default function ProductEditorPanel({
     try {
       await onSubmit({
         title: form.title,
+        barcode: form.barcode.trim() || null,
         description: form.description,
         specifications: form.specifications,
         price: form.price,
@@ -195,6 +198,7 @@ export default function ProductEditorPanel({
         setForm((prev) => ({
           ...prev,
           title: "",
+          barcode: "",
           description: "",
           specifications: "",
           price: "",
@@ -238,6 +242,12 @@ export default function ProductEditorPanel({
         value={form.title}
         onChange={(e) => updateForm("title", e.target.value)}
         placeholder="Product title"
+        className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+      />
+      <input
+        value={form.barcode}
+        onChange={(e) => updateForm("barcode", e.target.value)}
+        placeholder="Barcode (scan or type, optional)"
         className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
       />
       <input

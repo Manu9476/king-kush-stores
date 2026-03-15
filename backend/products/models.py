@@ -50,6 +50,7 @@ class Product(models.Model):
     
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)
+    barcode = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
     description = models.TextField()
     specifications = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2) # e.g., 99999999.99

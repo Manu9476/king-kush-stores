@@ -44,6 +44,7 @@ export interface Product {
     vendor_profile_id?: number;
     title: string;
     slug: string;
+    barcode?: string | null;
     description: string;
     specifications?: string | null;
     price: string; // Django decimals are sent as strings in JSON to preserve precision

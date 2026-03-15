@@ -163,6 +163,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "title",
             "slug",
+            "barcode",
             "description",
             "specifications",
             "price",
@@ -263,6 +264,7 @@ class VendorProductSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "slug",
+            "barcode",
             "description",
             "specifications",
             "price",
@@ -283,6 +285,9 @@ class VendorProductSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "slug", "created_at", "updated_at", "category", "sale_options")
 
     def validate(self, attrs):
+        if "barcode" in attrs and attrs.get("barcode") is not None:
+            barcode = str(attrs.get("barcode") or "").strip()
+            attrs["barcode"] = barcode or None
         sale_type = attrs.get("sale_type", getattr(self.instance, "sale_type", "single_item"))
         base_unit_label = attrs.get("base_unit_label", getattr(self.instance, "base_unit_label", "item"))
         base_quantity_value = attrs.get("base_quantity_value", getattr(self.instance, "base_quantity_value", Decimal("1")))

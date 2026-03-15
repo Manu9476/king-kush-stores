@@ -30,9 +30,9 @@ class ProductAdmin(admin.ModelAdmin):
     """
     Configures how the Product model is displayed in the Admin dashboard.
     """
-    list_display = ['title', 'vendor', 'category', 'price', 'sale_type', 'base_unit_label', 'stock', 'is_active']
+    list_display = ['title', 'barcode', 'vendor', 'category', 'price', 'sale_type', 'base_unit_label', 'stock', 'is_active']
     list_filter = ['is_active', 'category', 'sale_type']
-    search_fields = ['title', 'vendor__store_name']
+    search_fields = ['title', 'barcode', 'vendor__store_name']
     
     # Automatically fills the slug field as you type the title
     prepopulated_fields = {'slug': ('title',)} 
