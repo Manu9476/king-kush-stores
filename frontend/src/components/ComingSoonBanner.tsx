@@ -56,9 +56,11 @@ export default function ComingSoonBanner({ country }: ComingSoonBannerProps) {
             <div className="border-t border-gray-100 bg-gray-50 p-8 lg:border-l lg:border-t-0 lg:p-10">
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Launch Status</p>
-                <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-4">
-                  <p className="text-sm font-bold text-amber-800">Coming Soon</p>
-                  <p className="mt-1 text-sm leading-6 text-amber-700">
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-linear-to-r from-amber-50 via-yellow-50 to-amber-100 px-4 py-4 shadow-[0_0_24px_rgba(251,191,36,0.35)]">
+                  <p className="text-sm font-bold text-amber-900 drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]">
+                    Coming Soon
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-amber-800 drop-shadow-[0_0_8px_rgba(251,191,36,0.35)]">
                     Expansion planning for {country} is active, but the marketplace is not live there yet.
                   </p>
                 </div>
