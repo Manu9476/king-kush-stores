@@ -37,6 +37,7 @@ type AdminSidebarProps = {
     | "reviews"
     | "careers"
     | "support"
+    | "content"
     | "staff"
     | "advertising"
     | "promotions"
@@ -198,6 +199,15 @@ const NAV_ITEMS: NavItem[] = [
     module: "careers",
     group: "people",
     icon: FiActivity,
+  },
+  {
+    key: "content",
+    href: "/admin/content",
+    label: "Content",
+    description: "Company, creators, team, departments",
+    module: "content",
+    group: "people",
+    icon: FiBriefcase,
   },
   {
     key: "staff",

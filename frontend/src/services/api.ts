@@ -4568,3 +4568,374 @@ export async function getChatbotConversationDetail(token: string, conversationId
     if (!response.ok) throw new Error("Failed to fetch chatbot conversation detail.");
     return await response.json();
 }
+
+export interface ContentDepartment {
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    is_active: boolean;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CompanyMediaItem {
+    id: number;
+    image: string;
+    image_url: string;
+    caption: string;
+    is_featured: boolean;
+    sort_order: number;
+    created_at: string;
+}
+
+export interface CompanyProfileData {
+    id: number;
+    company_name: string;
+    slug: string;
+    logo: string | null;
+    logo_url: string;
+    banner: string | null;
+    banner_url: string;
+    description: string;
+    mission_vision: string;
+    email: string;
+    phone_number: string;
+    website_url: string;
+    address: string;
+    location: string;
+    year_founded: number | null;
+    category: string;
+    facebook_url: string;
+    instagram_url: string;
+    x_url: string;
+    linkedin_url: string;
+    youtube_url: string;
+    tiktok_url: string;
+    is_published: boolean;
+    is_active: boolean;
+    featured_media: CompanyMediaItem[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PersonProfileData {
+    id: number;
+    full_name: string;
+    slug: string;
+    profile_photo: string | null;
+    profile_photo_url: string;
+    role_title: string;
+    departments: ContentDepartment[];
+    bio: string;
+    email: string;
+    phone_number: string;
+    facebook_url: string;
+    instagram_url: string;
+    x_url: string;
+    linkedin_url: string;
+    portfolio_url: string;
+    joining_date: string | null;
+    is_active: boolean;
+    is_featured: boolean;
+    is_published: boolean;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreatorsPageResponse {
+    company: CompanyProfileData | null;
+    featured_creators: PersonProfileData[];
+    creators: PersonProfileData[];
+    departments: ContentDepartment[];
+}
+
+export interface TeamPageResponse {
+    featured_members: PersonProfileData[];
+    members: PersonProfileData[];
+    departments: ContentDepartment[];
+}
+
+export interface CompanyProfilePayload {
+    company_name: string;
+    description?: string;
+    mission_vision?: string;
+    email?: string;
+    phone_number?: string;
+    website_url?: string;
+    address?: string;
+    location?: string;
+    year_founded?: number | null;
+    category?: string;
+    facebook_url?: string;
+    instagram_url?: string;
+    x_url?: string;
+    linkedin_url?: string;
+    youtube_url?: string;
+    tiktok_url?: string;
+    is_published?: boolean;
+    is_active?: boolean;
+    logo?: File | null;
+    banner?: File | null;
+    featured_media_files?: File[];
+}
+
+export interface DepartmentPayload {
+    name: string;
+    description?: string;
+    is_active?: boolean;
+    sort_order?: number;
+}
+
+export interface PersonProfilePayload {
+    full_name: string;
+    role_title: string;
+    bio?: string;
+    email?: string;
+    phone_number?: string;
+    facebook_url?: string;
+    instagram_url?: string;
+    x_url?: string;
+    linkedin_url?: string;
+    portfolio_url?: string;
+    joining_date?: string | null;
+    is_active?: boolean;
+    is_featured?: boolean;
+    is_published?: boolean;
+    sort_order?: number;
+    department_ids?: number[];
+    profile_photo?: File | null;
+}
+
+function appendCompanyProfilePayload(formData: FormData, payload: Partial<CompanyProfilePayload>) {
+    const textFields: Array<keyof CompanyProfilePayload> = [
+        "company_name",
+        "description",
+        "mission_vision",
+        "email",
+        "phone_number",
+        "website_url",
+        "address",
+        "location",
+        "category",
+        "facebook_url",
+        "instagram_url",
+        "x_url",
+        "linkedin_url",
+        "youtube_url",
+        "tiktok_url",
+    ];
+    textFields.forEach((field) => {
+        const value = payload[field];
+        if (value !== undefined && value !== null) {
+            formData.append(field, String(value));
+        }
+    });
+    if (payload.year_founded !== undefined) formData.append("year_founded", payload.year_founded === null ? "" : String(payload.year_founded));
+    if (payload.is_published !== undefined) formData.append("is_published", String(payload.is_published));
+    if (payload.is_active !== undefined) formData.append("is_active", String(payload.is_active));
+    if (payload.logo) formData.append("logo", payload.logo);
+    if (payload.banner) formData.append("banner", payload.banner);
+    if (payload.featured_media_files?.length) {
+        payload.featured_media_files.forEach((file) => formData.append("featured_media_files", file));
+    }
+}
+
+function appendPersonProfilePayload(formData: FormData, payload: Partial<PersonProfilePayload>) {
+    const textFields: Array<keyof PersonProfilePayload> = [
+        "full_name",
+        "role_title",
+        "bio",
+        "email",
+        "phone_number",
+        "facebook_url",
+        "instagram_url",
+        "x_url",
+        "linkedin_url",
+        "portfolio_url",
+    ];
+    textFields.forEach((field) => {
+        const value = payload[field];
+        if (value !== undefined && value !== null) {
+            formData.append(field, String(value));
+        }
+    });
+    if (payload.joining_date !== undefined) formData.append("joining_date", payload.joining_date || "");
+    if (payload.is_active !== undefined) formData.append("is_active", String(payload.is_active));
+    if (payload.is_featured !== undefined) formData.append("is_featured", String(payload.is_featured));
+    if (payload.is_published !== undefined) formData.append("is_published", String(payload.is_published));
+    if (payload.sort_order !== undefined) formData.append("sort_order", String(payload.sort_order));
+    if (payload.department_ids) {
+        payload.department_ids.forEach((id) => formData.append("department_ids", String(id)));
+    }
+    if (payload.profile_photo) formData.append("profile_photo", payload.profile_photo);
+}
+
+export async function getPublicCreatorsPage(query: string = "", department: string = ""): Promise<CreatorsPageResponse> {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (department.trim()) params.set("department", department.trim());
+    const response = await requestWithApiBaseFallback(
+        `/content/public/creators/${params.toString() ? `?${params.toString()}` : ""}`,
+        { method: "GET", cache: "no-store" },
+        null,
+        true,
+    );
+    if (!response.ok) throw new Error("Failed to fetch creators page.");
+    return await response.json();
+}
+
+export async function getPublicCreatorDetail(slug: string): Promise<PersonProfileData> {
+    const response = await requestWithApiBaseFallback(`/content/public/creators/${slug}/`, { method: "GET", cache: "no-store" }, null, true);
+    if (!response.ok) throw new Error("Failed to fetch creator profile.");
+    return await response.json();
+}
+
+export async function getPublicTeamPage(query: string = "", department: string = ""): Promise<TeamPageResponse> {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (department.trim()) params.set("department", department.trim());
+    const response = await requestWithApiBaseFallback(
+        `/content/public/team/${params.toString() ? `?${params.toString()}` : ""}`,
+        { method: "GET", cache: "no-store" },
+        null,
+        true,
+    );
+    if (!response.ok) throw new Error("Failed to fetch team page.");
+    return await response.json();
+}
+
+export async function getPublicTeamMemberDetail(slug: string): Promise<PersonProfileData> {
+    const response = await requestWithApiBaseFallback(`/content/public/team/${slug}/`, { method: "GET", cache: "no-store" }, null, true);
+    if (!response.ok) throw new Error("Failed to fetch team member profile.");
+    return await response.json();
+}
+
+export async function getAdminCompanyProfile(token: string): Promise<{ company: CompanyProfileData | null }> {
+    const response = await requestWithApiBaseFallback(`/content/admin/company/`, { method: "GET" }, token);
+    if (!response.ok) throw new Error("Failed to fetch company profile.");
+    return await response.json();
+}
+
+export async function saveAdminCompanyProfile(token: string, payload: Partial<CompanyProfilePayload>): Promise<{ company: CompanyProfileData }> {
+    const formData = new FormData();
+    appendCompanyProfilePayload(formData, payload);
+    const response = await requestWithApiBaseFallback(`/content/admin/company/`, { method: "POST", body: formData }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to save company profile."));
+    }
+    return await response.json();
+}
+
+export async function getAdminDepartments(token: string): Promise<ContentDepartment[]> {
+    const response = await requestWithApiBaseFallback(`/content/admin/departments/`, { method: "GET" }, token);
+    if (!response.ok) throw new Error("Failed to fetch departments.");
+    return await response.json();
+}
+
+export async function createAdminDepartment(token: string, payload: DepartmentPayload): Promise<ContentDepartment> {
+    const response = await requestWithApiBaseFallback(`/content/admin/departments/`, { method: "POST", body: JSON.stringify(payload) }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to create department."));
+    }
+    return await response.json();
+}
+
+export async function updateAdminDepartment(token: string, departmentId: number, payload: Partial<DepartmentPayload>): Promise<ContentDepartment> {
+    const response = await requestWithApiBaseFallback(`/content/admin/departments/${departmentId}/`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update department."));
+    }
+    return await response.json();
+}
+
+export async function deleteAdminDepartment(token: string, departmentId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(`/content/admin/departments/${departmentId}/`, { method: "DELETE" }, token);
+    if (!response.ok) throw new Error("Failed to delete department.");
+}
+
+export async function getAdminCreators(token: string, query: string = ""): Promise<PersonProfileData[]> {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    const response = await requestWithApiBaseFallback(`/content/admin/creators/${params.toString() ? `?${params.toString()}` : ""}`, { method: "GET" }, token);
+    if (!response.ok) throw new Error("Failed to fetch creators.");
+    return await response.json();
+}
+
+export async function createAdminCreator(token: string, payload: PersonProfilePayload): Promise<PersonProfileData> {
+    const formData = new FormData();
+    appendPersonProfilePayload(formData, payload);
+    const response = await requestWithApiBaseFallback(`/content/admin/creators/`, { method: "POST", body: formData }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to create creator."));
+    }
+    return await response.json();
+}
+
+export async function updateAdminCreator(token: string, creatorId: number, payload: Partial<PersonProfilePayload>): Promise<PersonProfileData> {
+    const formData = new FormData();
+    appendPersonProfilePayload(formData, payload);
+    const response = await requestWithApiBaseFallback(`/content/admin/creators/${creatorId}/`, { method: "PATCH", body: formData }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update creator."));
+    }
+    return await response.json();
+}
+
+export async function deleteAdminCreator(token: string, creatorId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(`/content/admin/creators/${creatorId}/`, { method: "DELETE" }, token);
+    if (!response.ok) throw new Error("Failed to delete creator.");
+}
+
+export async function getAdminTeamMembers(token: string, query: string = ""): Promise<PersonProfileData[]> {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    const response = await requestWithApiBaseFallback(`/content/admin/team-members/${params.toString() ? `?${params.toString()}` : ""}`, { method: "GET" }, token);
+    if (!response.ok) throw new Error("Failed to fetch team members.");
+    return await response.json();
+}
+
+export async function createAdminTeamMember(token: string, payload: PersonProfilePayload): Promise<PersonProfileData> {
+    const formData = new FormData();
+    appendPersonProfilePayload(formData, payload);
+    const response = await requestWithApiBaseFallback(`/content/admin/team-members/`, { method: "POST", body: formData }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to create team member."));
+    }
+    return await response.json();
+}
+
+export async function updateAdminTeamMember(token: string, memberId: number, payload: Partial<PersonProfilePayload>): Promise<PersonProfileData> {
+    const formData = new FormData();
+    appendPersonProfilePayload(formData, payload);
+    const response = await requestWithApiBaseFallback(`/content/admin/team-members/${memberId}/`, { method: "PATCH", body: formData }, token);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update team member."));
+    }
+    return await response.json();
+}
+
+export async function deleteAdminTeamMember(token: string, memberId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(`/content/admin/team-members/${memberId}/`, { method: "DELETE" }, token);
+    if (!response.ok) throw new Error("Failed to delete team member.");
+}
+
+export async function updateAdminCompanyMedia(token: string, mediaId: number, payload: Partial<Pick<CompanyMediaItem, "caption" | "is_featured" | "sort_order">>): Promise<CompanyMediaItem> {
+    const response = await requestWithApiBaseFallback(`/content/admin/company/media/${mediaId}/`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+    if (!response.ok) throw new Error("Failed to update company media.");
+    return await response.json();
+}
+
+export async function deleteAdminCompanyMedia(token: string, mediaId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(`/content/admin/company/media/${mediaId}/`, { method: "DELETE" }, token);
+    if (!response.ok) throw new Error("Failed to delete company media.");
+}

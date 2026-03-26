@@ -400,6 +400,13 @@ export default function AdminDashboard() {
       meta: "Requests, placements, analytics",
     },
     {
+      href: "/admin/content",
+      label: "Content Desk",
+      show: canAccessAdminModule("content"),
+      count: "Company & people",
+      meta: "Creators, team, departments, publishing",
+    },
+    {
       href: "/admin/staff",
       label: "Staff & Roles",
       show: canAccessAdminModule("staff"),

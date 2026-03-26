@@ -124,6 +124,8 @@ const Footer: React.FC = () => {
             <h3 className="font-heading text-body-lg font-bold mb-5 uppercase tracking-wider">About Us</h3>
             <ul className="space-y-4">
               <li><Link href="/footer-links/about-us" className={linkStyles}>About King-Kush</Link></li>
+              <li><Link href="/creators" className={linkStyles}>Creators</Link></li>
+              <li><Link href="/our-team" className={linkStyles}>Our Team</Link></li>
               <li><Link href="/footer-links/careers" className={linkStyles}>Careers</Link></li>
               <li><Link href="/footer-links/terms-and-conditions" className={linkStyles}>Terms & Conditions</Link></li>
               <li><Link href="/footer-links/privacy-notice" className={linkStyles}>Privacy Notice</Link></li>

@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'chatbot',
     'careers',
     'support',
+    'content',
     'advertising',
     'promotions',
     'pickup',
