@@ -96,6 +96,26 @@ export default function PublicPeopleClient({ mode }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">My Company</p>
                 <h1 className="mt-2 text-3xl font-black text-gray-900 md:text-4xl">{company.company_name}</h1>
                 <p className="mt-3 text-sm leading-7 text-gray-600">{company.description || "Company profile coming soon."}</p>
+                {(company.email || company.phone_number || company.website_url || company.address || company.location) ? (
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    {company.email ? <p className="text-sm text-gray-700"><strong>Email:</strong> <a href={`mailto:${company.email}`} className="text-primary hover:underline">{company.email}</a></p> : null}
+                    {company.phone_number ? <p className="text-sm text-gray-700"><strong>Phone:</strong> <a href={`tel:${company.phone_number}`} className="text-primary hover:underline">{company.phone_number}</a></p> : null}
+                    {company.website_url ? <p className="text-sm text-gray-700"><strong>Website:</strong> <a href={company.website_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{company.website_url}</a></p> : null}
+                    {company.location ? <p className="text-sm text-gray-700"><strong>Location:</strong> {company.location}</p> : null}
+                    {company.address ? <p className="text-sm text-gray-700 md:col-span-2"><strong>Address:</strong> {company.address}</p> : null}
+                  </div>
+                ) : null}
+                {(company.facebook_url || company.instagram_url || company.x_url || company.linkedin_url || company.youtube_url || company.tiktok_url) ? (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {company.website_url ? <a href={company.website_url} target="_blank" rel="noreferrer" className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-hover">Website</a> : null}
+                    {company.facebook_url ? <a href={company.facebook_url} target="_blank" rel="noreferrer" className="rounded-full bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200">Facebook</a> : null}
+                    {company.instagram_url ? <a href={company.instagram_url} target="_blank" rel="noreferrer" className="rounded-full bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200">Instagram</a> : null}
+                    {company.x_url ? <a href={company.x_url} target="_blank" rel="noreferrer" className="rounded-full bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200">X</a> : null}
+                    {company.linkedin_url ? <a href={company.linkedin_url} target="_blank" rel="noreferrer" className="rounded-full bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200">LinkedIn</a> : null}
+                    {company.youtube_url ? <a href={company.youtube_url} target="_blank" rel="noreferrer" className="rounded-full bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200">YouTube</a> : null}
+                    {company.tiktok_url ? <a href={company.tiktok_url} target="_blank" rel="noreferrer" className="rounded-full bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200">TikTok</a> : null}
+                  </div>
+                ) : null}
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   {company.mission ? (
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
