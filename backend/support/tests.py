@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import KnowledgeBaseEntry, SupportTicket
+from .models import KnowledgeBaseEntry, NewsletterSubscription, SupportTicket
 
 User = get_user_model()
 
@@ -47,6 +47,16 @@ class SupportPublicApiTests(APITestCase):
         ticket = SupportTicket.objects.first()
         self.assertEqual(ticket.subject, payload["subject"])
         self.assertEqual(ticket.messages.count(), 1)
+
+    def test_newsletter_subscription_creates_and_deduplicates_email(self):
+        payload = {"email": "shopper@example.com"}
+        first_response = self.client.post("/api/support/newsletter/", payload, format="json")
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(NewsletterSubscription.objects.count(), 1)
+
+        second_response = self.client.post("/api/support/newsletter/", payload, format="json")
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(NewsletterSubscription.objects.count(), 1)
 
 
 class SupportAdminApiTests(APITestCase):

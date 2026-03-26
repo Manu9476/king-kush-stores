@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from .models import (
     KnowledgeBaseEntry,
+    NewsletterSubscription,
     SupportCategory,
     SupportTicketAttachment,
     SupportTicket,
@@ -40,6 +41,16 @@ class KnowledgeBaseEntrySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+
+class NewsletterSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsletterSubscription
+        fields = ("id", "email", "is_active", "subscribed_at")
+        read_only_fields = ("id", "is_active", "subscribed_at")
+
+    def validate_email(self, value):
+        return value.strip().lower()
 
 
 class SupportTicketMessageSerializer(serializers.ModelSerializer):

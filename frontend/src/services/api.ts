@@ -4113,6 +4113,24 @@ export async function getAdminAdvertisingAnalytics(token: string): Promise<Adver
     return await response.json();
 }
 
+export async function subscribeToNewsletter(email: string): Promise<{ detail: string; email: string; is_active: boolean }> {
+    const response = await requestWithApiBaseFallback(
+        "/support/newsletter/",
+        {
+            method: "POST",
+            body: JSON.stringify({ email }),
+        },
+        null,
+        true,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to subscribe to newsletter."));
+    }
+    return await response.json();
+}
+
 // ==========================================
 // --- CHATBOT API CALLS (CLIENT) ---
 // ==========================================

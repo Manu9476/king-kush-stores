@@ -152,3 +152,16 @@ class SupportTicketAttachment(models.Model):
 
     def __str__(self):
         return f"ticket:{self.ticket_id} file:{self.original_name or self.file.name}"
+
+
+class NewsletterSubscription(models.Model):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-subscribed_at",)
+
+    def __str__(self):
+        return self.email

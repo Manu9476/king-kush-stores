@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import KnowledgeBaseEntry, SupportTicket, SupportTicketAttachment, SupportTicketMessage
+from .models import KnowledgeBaseEntry, NewsletterSubscription, SupportTicket, SupportTicketAttachment, SupportTicketMessage
 
 
 class SupportTicketMessageInline(admin.TabularInline):
@@ -47,3 +47,11 @@ class KnowledgeBaseEntryAdmin(admin.ModelAdmin):
     list_filter = ("category", "entry_type", "is_published")
     search_fields = ("title", "content", "short_answer")
     prepopulated_fields = {"slug": ("title",)}
+
+
+@admin.register(NewsletterSubscription)
+class NewsletterSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("email", "is_active", "subscribed_at", "updated_at")
+    list_filter = ("is_active", "subscribed_at")
+    search_fields = ("email",)
+    readonly_fields = ("subscribed_at", "updated_at")

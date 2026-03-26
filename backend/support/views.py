@@ -15,9 +15,10 @@ from users.models import VendorProfile
 from users.permissions import IsMarketplaceAdmin, has_admin_permission
 from users.rbac import log_admin_activity
 
-from .models import KnowledgeBaseEntry, SupportTicket
+from .models import KnowledgeBaseEntry, NewsletterSubscription, SupportTicket
 from .serializers import (
     KnowledgeBaseEntrySerializer,
+    NewsletterSubscriptionSerializer,
     SupportTicketAdminUpdateSerializer,
     SupportTicketCreateSerializer,
     SupportTicketDetailSerializer,
@@ -366,6 +367,39 @@ def submit_support_ticket(request):
             "detail": "Support request submitted successfully. Our team will get back to you soon.",
         },
         status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def newsletter_subscribe(request):
+    serializer = NewsletterSubscriptionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    email = serializer.validated_data["email"]
+    subscription, created = NewsletterSubscription.objects.get_or_create(
+        email=email,
+        defaults={"is_active": True},
+    )
+
+    was_reactivated = False
+    if not created and not subscription.is_active:
+        subscription.is_active = True
+        subscription.save(update_fields=["is_active", "updated_at"])
+        was_reactivated = True
+
+    return Response(
+        {
+            "id": subscription.id,
+            "email": subscription.email,
+            "is_active": subscription.is_active,
+            "detail": (
+                "Subscription successful. You will now receive marketplace updates."
+                if created or was_reactivated
+                else "You are already subscribed."
+            ),
+        },
+        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
     )
 
 

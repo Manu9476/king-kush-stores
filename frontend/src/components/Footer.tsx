@@ -1,16 +1,46 @@
 "use client";
 
 import Link from 'next/link';
-import React from 'react';
+import React, { useState } from 'react';
 import { FaFacebook, FaTwitter, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { GiPayMoney } from "react-icons/gi";
 import { FaCcVisa, FaCcMastercard } from "react-icons/fa6";
 import { useChatbot } from '../context/ChatbotContext';
+import { subscribeToNewsletter } from '../services/api';
 
 
 const Footer: React.FC = () => {
   const linkStyles = "font-body text-body text-blue-100 hover:text-white underline-offset-4 hover:underline transition-colors duration-300";
   const { toggleChatbot } = useChatbot();
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterState, setNewsletterState] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedEmail = newsletterEmail.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setNewsletterState({ type: "error", message: "Enter your email address to subscribe." });
+      return;
+    }
+
+    setIsSubscribing(true);
+    setNewsletterState(null);
+
+    try {
+      const response = await subscribeToNewsletter(normalizedEmail);
+      setNewsletterEmail("");
+      setNewsletterState({ type: "success", message: response.detail });
+    } catch (error: any) {
+      setNewsletterState({
+        type: "error",
+        message: error?.message || "We could not process your subscription right now.",
+      });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   return (
     <footer className="bg-primary text-white pt-20 pb-8 px-4">
@@ -25,18 +55,34 @@ const Footer: React.FC = () => {
             </p>
           </div>
           <div className="w-full md:w-1/2 max-w-md">
-            <form className="flex">
-              <input 
-                type="email" 
-                placeholder="Your email address"
-                className="w-full bg-primary-light/40 border-2 border-primary-light/50 rounded-l-modern py-3 px-5 text-white placeholder-neutral-subtle focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
-              />
-              <button 
-                type="submit"
-                className="bg-accent hover:bg-accent-hover text-white font-heading font-semibold py-3 px-8 rounded-r-modern transition-all duration-300"
-              >
-                Subscribe
-              </button>
+            <form className="flex flex-col gap-3" onSubmit={handleNewsletterSubmit}>
+              <div className="flex">
+                <input 
+                  type="email" 
+                  name="newsletter_email"
+                  value={newsletterEmail}
+                  onChange={(event) => setNewsletterEmail(event.target.value)}
+                  placeholder="Your email address"
+                  aria-label="Email address"
+                  className="w-full bg-primary-light/40 border-2 border-primary-light/50 rounded-l-modern py-3 px-5 text-white placeholder-neutral-subtle focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                />
+                <button 
+                  type="submit"
+                  disabled={isSubscribing}
+                  className="bg-accent hover:bg-accent-hover text-white font-heading font-semibold py-3 px-8 rounded-r-modern transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubscribing ? "Submitting..." : "Subscribe"}
+                </button>
+              </div>
+              {newsletterState && (
+                <p
+                  className={`font-body text-small ${
+                    newsletterState.type === "success" ? "text-emerald-200" : "text-amber-200"
+                  }`}
+                >
+                  {newsletterState.message}
+                </p>
+              )}
             </form>
           </div>
         </div>

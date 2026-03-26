@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     path("help-center/", views.help_center_content, name="support-help-center"),
     path("contact/", views.submit_support_ticket, name="support-contact"),
+    path("newsletter/", views.newsletter_subscribe, name="support-newsletter-subscribe"),
     path("admin/tickets/", views.admin_support_tickets, name="support-admin-tickets"),
     path("admin/tickets/<int:ticket_id>/", views.admin_support_ticket_detail, name="support-admin-ticket-detail"),
     path("admin/tickets/<int:ticket_id>/reply/", views.admin_support_ticket_reply, name="support-admin-ticket-reply"),
