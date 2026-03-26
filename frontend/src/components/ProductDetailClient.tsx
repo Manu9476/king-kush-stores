@@ -65,6 +65,37 @@ function formatReviewDate(value: string): string {
   return new Date(value).toLocaleDateString();
 }
 
+function renderRatingStars(
+  selectedRating: number,
+  onSelect?: (value: number) => void,
+  disabled: boolean = false,
+) {
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }).map((_, index) => {
+        const value = index + 1;
+        const active = value <= selectedRating;
+        const buttonClasses = onSelect
+          ? `transition-transform ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:scale-110"}`
+          : "";
+
+        return (
+          <button
+            key={`rating-input-${value}`}
+            type="button"
+            disabled={!onSelect || disabled}
+            onClick={() => onSelect?.(value)}
+            className={buttonClasses}
+            aria-label={`Rate ${value} star${value === 1 ? "" : "s"}`}
+          >
+            <FiStar className={`h-5 w-5 ${active ? "fill-current text-amber-500" : "text-gray-300"}`} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps) {
   const router = useRouter();
   const { addToCart } = useCart();
@@ -181,7 +212,12 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
         setReviewForm({ rating: 5, title: "", content: "" });
       }
     } catch (error: any) {
-      setReviewError(error?.message || "Unable to load customer reviews right now.");
+      const rawMessage = error?.message || "Unable to load customer reviews right now.";
+      setReviewError(
+        rawMessage === "Not found."
+          ? "Review service is not available on the deployed backend yet. Push the backend review changes and run migrations on Render."
+          : rawMessage,
+      );
     } finally {
       setReviewLoading(false);
     }
@@ -623,17 +659,17 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                 </div>
               ) : (
                 <form className="mt-3 space-y-3" onSubmit={submitReview}>
-                  <select
-                    value={reviewForm.rating}
-                    onChange={(event) => setReviewForm((prev) => ({ ...prev, rating: Number(event.target.value) }))}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-800"
-                  >
-                    {[5, 4, 3, 2, 1].map((value) => (
-                      <option key={value} value={value}>
-                        {value} star{value === 1 ? "" : "s"}
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Your rating</p>
+                    <div className="flex items-center gap-3">
+                      {renderRatingStars(reviewForm.rating, (value) =>
+                        setReviewForm((prev) => ({ ...prev, rating: value })),
+                      )}
+                      <span className="text-sm font-semibold text-gray-700">
+                        {reviewForm.rating} star{reviewForm.rating === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </div>
                   <input
                     value={reviewForm.title}
                     onChange={(event) => setReviewForm((prev) => ({ ...prev, title: event.target.value }))}
