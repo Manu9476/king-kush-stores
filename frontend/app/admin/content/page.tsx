@@ -14,6 +14,7 @@ import {
   createAdminCreator,
   createAdminDepartment,
   createAdminTeamMember,
+  deleteAdminCompanyMedia,
   deleteAdminCreator,
   deleteAdminDepartment,
   deleteAdminTeamMember,
