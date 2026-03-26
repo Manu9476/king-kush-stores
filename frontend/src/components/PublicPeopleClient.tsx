@@ -87,6 +87,14 @@ export default function PublicPeopleClient({ mode }: Props) {
           <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
             <button type="button" onClick={() => setLightboxImage(company.banner_url || FALLBACK_IMAGE)} className="relative block h-64 w-full bg-gray-100">
               <Image src={company.banner_url || FALLBACK_IMAGE} alt={company.company_name} fill className="object-cover" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
+              <div className="absolute bottom-4 left-4 rounded-2xl border border-white/25 bg-white/15 px-4 py-3 text-left backdrop-blur-md">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/80">Company Profile</p>
+                <p className="mt-1 text-lg font-black text-white">{company.company_name}</p>
+                {company.category ? (
+                  <p className="mt-1 text-xs font-semibold text-white/85">{company.category}</p>
+                ) : null}
+              </div>
             </button>
             <div className="grid gap-6 p-6 lg:grid-cols-[120px_minmax(0,1fr)] lg:p-8">
               <button type="button" onClick={() => setLightboxImage(company.logo_url || FALLBACK_IMAGE)} className="relative h-28 w-28 overflow-hidden rounded-2xl border border-gray-200 bg-white">
