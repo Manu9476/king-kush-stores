@@ -661,13 +661,25 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                 <form className="mt-3 space-y-3" onSubmit={submitReview}>
                   <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Your rating</p>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       {renderRatingStars(reviewForm.rating, (value) =>
                         setReviewForm((prev) => ({ ...prev, rating: value })),
                       )}
                       <span className="text-sm font-semibold text-gray-700">
                         {reviewForm.rating} star{reviewForm.rating === 1 ? "" : "s"}
                       </span>
+                      <select
+                        value={reviewForm.rating}
+                        onChange={(event) => setReviewForm((prev) => ({ ...prev, rating: Number(event.target.value) }))}
+                        className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-800"
+                        aria-label="Select star rating"
+                      >
+                        {[5, 4, 3, 2, 1].map((value) => (
+                          <option key={value} value={value}>
+                            {value} star{value === 1 ? "" : "s"}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <input
