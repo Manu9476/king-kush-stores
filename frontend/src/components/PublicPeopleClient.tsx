@@ -38,7 +38,7 @@ function PersonCard({ item, href }: { item: PersonProfileData; href: string }) {
       </Link>
       {openImage ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setOpenImage(false)}>
-          <div className="relative h-[80vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white" onClick={(event) => event.stopPropagation()}>
+          <div className="relative h-[80vh] w-full max-w-4xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
             <Image src={image} alt={item.full_name} fill className="object-contain" />
           </div>
         </div>
@@ -249,7 +249,7 @@ export default function PublicPeopleClient({ mode }: Props) {
       </div>
       {lightboxImage ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightboxImage(null)}>
-          <div className="relative h-[85vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white" onClick={(event) => event.stopPropagation()}>
+          <div className="relative h-[85vh] w-full max-w-5xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
             <Image src={lightboxImage} alt="Expanded media" fill className="object-contain" />
           </div>
         </div>

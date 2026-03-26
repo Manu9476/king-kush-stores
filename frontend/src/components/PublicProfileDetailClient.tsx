@@ -57,7 +57,7 @@ export default function PublicProfileDetailClient({ mode, slug }: { mode: "creat
       </div>
       {openImage ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setOpenImage(false)}>
-          <div className="relative h-[85vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white" onClick={(event) => event.stopPropagation()}>
+          <div className="relative h-[85vh] w-full max-w-5xl overflow-hidden" onClick={(event) => event.stopPropagation()}>
             <Image src={item.profile_photo_url || FALLBACK_IMAGE} alt={item.full_name} fill className="object-contain" />
           </div>
         </div>
