@@ -651,11 +651,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                 </div>
               ) : userRole !== "customer" ? (
                 <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
-                  Reviews are reserved for customer accounts that have purchased the item.
+                  Reviews are reserved for customer accounts.
                 </div>
               ) : !reviewData?.can_review && !reviewData?.user_review ? (
                 <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
-                  Purchase this item first to unlock reviewing.
+                  You have already submitted feedback for this product.
                 </div>
               ) : (
                 <form className="mt-3 space-y-3" onSubmit={submitReview}>
@@ -679,7 +679,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   <textarea
                     value={reviewForm.content}
                     onChange={(event) => setReviewForm((prev) => ({ ...prev, content: event.target.value }))}
-                    placeholder="Share your experience with this product"
+                    placeholder="Share your review so other customers can see it"
                     className="min-h-28 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
                   />
                   <div className="flex flex-wrap gap-2">

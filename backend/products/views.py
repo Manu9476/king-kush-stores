@@ -221,7 +221,7 @@ def product_reviews(request, product_id: int):
         can_review = False
         if user and user.is_authenticated:
             user_review = reviews_qs.filter(user=user).first() if is_admin else product.reviews.filter(user=user).first()
-            can_review = bool(_get_review_eligible_order_item(user, product) and not user_review)
+            can_review = bool(getattr(user, "role", "") == "customer" and not user_review)
         return Response(
             {
                 "summary": {
@@ -247,9 +247,6 @@ def product_reviews(request, product_id: int):
         return Response({"detail": "You have already reviewed this product."}, status=status.HTTP_400_BAD_REQUEST)
 
     eligible_order_item = _get_review_eligible_order_item(user, product)
-    if not eligible_order_item:
-        return Response({"detail": "You can only review products you have purchased."}, status=status.HTTP_403_FORBIDDEN)
-
     serializer = ProductReviewCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     review = ProductReview.objects.create(
@@ -260,7 +257,7 @@ def product_reviews(request, product_id: int):
         rating=serializer.validated_data["rating"],
         title=str(serializer.validated_data.get("title", "")).strip(),
         content=serializer.validated_data["content"],
-        is_verified_purchase=True,
+        is_verified_purchase=bool(eligible_order_item),
         is_approved=True,
     )
     return Response(ProductReviewSerializer(review, context={"request": request}).data, status=status.HTTP_201_CREATED)
