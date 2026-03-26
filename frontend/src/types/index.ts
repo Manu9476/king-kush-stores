@@ -56,6 +56,8 @@ export interface Product {
     promotion_badge?: string;
     promotion_ends_at?: string | null;
     urgency_text?: string;
+    rating_average?: number;
+    review_count?: number;
     stock: number;
     sale_type: ProductSaleType;
     base_unit_label: string;

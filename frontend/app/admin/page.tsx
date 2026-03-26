@@ -351,6 +351,13 @@ export default function AdminDashboard() {
       meta: "Compliance and listing quality",
     },
     {
+      href: "/admin/reviews",
+      label: "Reviews Desk",
+      show: canAccessAdminModule("products"),
+      count: "Customer feedback",
+      meta: "Ratings, comments, moderation",
+    },
+    {
       href: "/admin/pickup-stations",
       label: "Pickup Desk",
       show: canAccessAdminModule("pickup"),

@@ -14,6 +14,7 @@ import {
   FiGrid,
   FiHeadphones,
   FiMapPin,
+  FiMessageCircle,
   FiPackage,
   FiSearch,
   FiSettings,
@@ -33,6 +34,7 @@ type AdminSidebarProps = {
     | "receipts"
     | "vendors"
     | "products"
+    | "reviews"
     | "careers"
     | "support"
     | "staff"
@@ -133,6 +135,15 @@ const NAV_ITEMS: NavItem[] = [
     module: "products",
     group: "operations",
     icon: FiPackage,
+  },
+  {
+    key: "reviews",
+    href: "/admin/reviews",
+    label: "Reviews",
+    description: "Customer feedback and moderation",
+    module: "products",
+    group: "operations",
+    icon: FiMessageCircle,
   },
   {
     key: "pickup",

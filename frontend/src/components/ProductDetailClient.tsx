@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
+  FiMessageCircle,
   FiMaximize2,
   FiRotateCcw,
   FiShield,
@@ -16,12 +17,23 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   formatCurrency,
   getProductDefaultSaleOption,
   getUnitAwareEffectivePrice,
   getUnitAwareOriginalPrice,
 } from "@/lib/utils";
+import {
+  ProductReviewListResponse,
+  createProductReview,
+  createProductReviewComment,
+  deleteMyProductReviewComment,
+  deleteMyProductReview,
+  getProductReviews,
+  updateMyProductReviewComment,
+  updateMyProductReview,
+} from "@/services/api";
 import { Product } from "@/types";
 import AdSlot from "./ads/AdSlot";
 import ProductScrollGallery from "./ProductScrollGallery";
@@ -31,15 +43,6 @@ const PLACEHOLDER_IMAGE = "/product-placeholder.svg";
 interface ProductDetailClientProps {
   product: Product;
   relatedProducts: Product[];
-}
-
-function getProductRating(productId: number): number {
-  const value = 3.8 + ((productId * 37) % 12) / 10;
-  return Math.min(4.9, Math.max(3.8, value));
-}
-
-function getProductReviewCount(productId: number): number {
-  return 10 + ((productId * 29) % 190);
 }
 
 function getGalleryImages(product: Product): string[] {
@@ -58,9 +61,14 @@ function normalizeDescription(raw: string): { isHtml: boolean; text: string } {
   return { isHtml, text: text || "No description available yet." };
 }
 
+function formatReviewDate(value: string): string {
+  return new Date(value).toLocaleDateString();
+}
+
 export default function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps) {
   const router = useRouter();
   const { addToCart } = useCart();
+  const { isAuthenticated, token, userRole } = useAuth();
 
   const galleryImages = useMemo(() => getGalleryImages(product), [product]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -72,10 +80,25 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(
     getProductDefaultSaleOption(product)?.id ?? null,
   );
+  const [reviewData, setReviewData] = useState<ProductReviewListResponse | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [commentSubmittingId, setCommentSubmittingId] = useState<number | null>(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", content: "" });
+  const [commentDrafts, setCommentDrafts] = useState<Record<number, string>>({});
+  const [commentEditDrafts, setCommentEditDrafts] = useState<Record<number, string>>({});
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
 
-  const rating = useMemo(() => getProductRating(product.id), [product.id]);
+  const rating = useMemo(
+    () => Number(reviewData?.summary?.average_rating ?? product.rating_average ?? 0),
+    [reviewData?.summary?.average_rating, product.rating_average],
+  );
   const roundedRating = Math.round(rating);
-  const reviewCount = useMemo(() => getProductReviewCount(product.id), [product.id]);
+  const reviewCount = useMemo(
+    () => Number(reviewData?.summary?.review_count ?? product.review_count ?? 0),
+    [reviewData?.summary?.review_count, product.review_count],
+  );
 
   const selectedOption =
     product.sale_options?.find((row) => row.id === selectedOptionId) || getProductDefaultSaleOption(product);
@@ -141,6 +164,132 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [lightboxOpen, selectedIndex, galleryImages.length, setImageIndexWithinBounds]);
+
+  const loadReviews = useCallback(async () => {
+    setReviewLoading(true);
+    setReviewError("");
+    try {
+      const data = await getProductReviews(product.id);
+      setReviewData(data);
+      if (data.user_review) {
+        setReviewForm({
+          rating: data.user_review.rating,
+          title: data.user_review.title || "",
+          content: data.user_review.content || "",
+        });
+      } else {
+        setReviewForm({ rating: 5, title: "", content: "" });
+      }
+    } catch (error: any) {
+      setReviewError(error?.message || "Unable to load customer reviews right now.");
+    } finally {
+      setReviewLoading(false);
+    }
+  }, [product.id]);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
+
+  const submitReview = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setReviewError("");
+    try {
+      if (reviewData?.user_review) {
+        await updateMyProductReview(token, reviewData.user_review.id, reviewForm);
+      } else {
+        await createProductReview(token, product.id, reviewForm);
+      }
+      await loadReviews();
+    } catch (error: any) {
+      setReviewError(error?.message || "Unable to save your review.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const removeReview = async () => {
+    if (!token || !reviewData?.user_review) return;
+    setReviewSubmitting(true);
+    setReviewError("");
+    try {
+      await deleteMyProductReview(token, reviewData.user_review.id);
+      await loadReviews();
+    } catch (error: any) {
+      setReviewError(error?.message || "Unable to delete your review.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const submitComment = async (reviewId: number) => {
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    const content = (commentDrafts[reviewId] || "").trim();
+    if (!content) return;
+
+    setCommentSubmittingId(reviewId);
+    setReviewError("");
+    try {
+      await createProductReviewComment(token, reviewId, { content });
+      setCommentDrafts((prev) => ({ ...prev, [reviewId]: "" }));
+      await loadReviews();
+    } catch (error: any) {
+      setReviewError(error?.message || "Unable to add your comment.");
+    } finally {
+      setCommentSubmittingId(null);
+    }
+  };
+
+  const submitCommentEdit = async (commentId: number) => {
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    const content = (commentEditDrafts[commentId] || "").trim();
+    if (!content) return;
+
+    setCommentSubmittingId(commentId);
+    setReviewError("");
+    try {
+      await updateMyProductReviewComment(token, commentId, { content });
+      setEditingCommentId(null);
+      await loadReviews();
+    } catch (error: any) {
+      setReviewError(error?.message || "Unable to update your comment.");
+    } finally {
+      setCommentSubmittingId(null);
+    }
+  };
+
+  const removeComment = async (commentId: number) => {
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setCommentSubmittingId(commentId);
+    setReviewError("");
+    try {
+      await deleteMyProductReviewComment(token, commentId);
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
+      }
+      await loadReviews();
+    } catch (error: any) {
+      setReviewError(error?.message || "Unable to delete your comment.");
+    } finally {
+      setCommentSubmittingId(null);
+    }
+  };
 
   const handleAddToCart = () => {
     addToCart(product, selectedOptionId);
@@ -418,16 +567,248 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-sm font-bold uppercase tracking-wide text-gray-800">Customer Reviews</h2>
               <p className="mt-2 text-sm text-gray-700">
-                Rating: <strong>{rating.toFixed(1)} / 5</strong> from {reviewCount} verified buyers.
+                Rating: <strong>{rating.toFixed(1)} / 5</strong> from {reviewCount} customer review{reviewCount === 1 ? "" : "s"}.
               </p>
               <p className="mt-2 text-xs text-gray-500">
-                Review analytics and full feedback panel are available in the next update cycle.
+                Browse community feedback, add your own review after purchase, and join the discussion.
               </p>
+              <a
+                href="#customer-reviews"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                <FiMessageCircle className="h-3.5 w-3.5" />
+                Open Reviews
+              </a>
             </div>
 
             <AdSlot placementKey="sidebar_promo" pagePath={`/product/${encodeURIComponent(String(product.slug || product.id))}`} category={product.category?.name || ""} />
           </aside>
         </div>
+
+        <section id="customer-reviews" className="mt-10 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="space-y-4">
+            <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-black text-gray-900">Customer Reviews</h2>
+              <div className="mt-3 flex items-center gap-2 text-amber-500">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <FiStar key={`summary-star-${index}`} className={`h-5 w-5 ${index < roundedRating ? "fill-current" : "text-gray-300"}`} />
+                ))}
+                <span className="ml-1 text-sm font-semibold text-gray-700">
+                  {rating.toFixed(1)} out of 5
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-gray-600">
+                {reviewCount > 0
+                  ? `${reviewCount} published review${reviewCount === 1 ? "" : "s"} from marketplace customers.`
+                  : "No customer reviews yet. Be the first to share feedback after purchase."}
+              </p>
+            </article>
+
+            <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">Write a Review</h3>
+              {reviewError ? (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">{reviewError}</div>
+              ) : null}
+              {!isAuthenticated ? (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
+                  Sign in with your customer account to leave a review or comment.
+                </div>
+              ) : userRole !== "customer" ? (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
+                  Reviews are reserved for customer accounts that have purchased the item.
+                </div>
+              ) : !reviewData?.can_review && !reviewData?.user_review ? (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600">
+                  Purchase this item first to unlock reviewing.
+                </div>
+              ) : (
+                <form className="mt-3 space-y-3" onSubmit={submitReview}>
+                  <select
+                    value={reviewForm.rating}
+                    onChange={(event) => setReviewForm((prev) => ({ ...prev, rating: Number(event.target.value) }))}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-800"
+                  >
+                    {[5, 4, 3, 2, 1].map((value) => (
+                      <option key={value} value={value}>
+                        {value} star{value === 1 ? "" : "s"}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={reviewForm.title}
+                    onChange={(event) => setReviewForm((prev) => ({ ...prev, title: event.target.value }))}
+                    placeholder="Review title"
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    value={reviewForm.content}
+                    onChange={(event) => setReviewForm((prev) => ({ ...prev, content: event.target.value }))}
+                    placeholder="Share your experience with this product"
+                    className="min-h-28 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      disabled={reviewSubmitting}
+                      className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+                    >
+                      {reviewSubmitting ? "Saving..." : reviewData?.user_review ? "Update Review" : "Post Review"}
+                    </button>
+                    {reviewData?.user_review ? (
+                      <button
+                        type="button"
+                        onClick={removeReview}
+                        disabled={reviewSubmitting}
+                        className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                      >
+                        Delete Review
+                      </button>
+                    ) : null}
+                  </div>
+                </form>
+              )}
+            </article>
+          </div>
+
+          <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-black text-gray-900">Feedback from customers</h3>
+              {reviewLoading ? <span className="text-xs font-semibold text-gray-500">Loading...</span> : null}
+            </div>
+
+            {!reviewLoading && reviewData?.items?.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-600">
+                No reviews have been published for this product yet.
+              </div>
+            ) : null}
+
+            <div className="mt-4 space-y-5">
+              {reviewData?.items?.map((review) => (
+                <div key={review.id} className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-900">{review.author_name}</p>
+                        {review.is_verified_purchase ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                            Verified purchase
+                          </span>
+                        ) : null}
+                        {review.is_featured ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                            Featured
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 flex items-center gap-1 text-amber-500">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                          <FiStar key={`review-${review.id}-star-${index}`} className={`h-4 w-4 ${index < review.rating ? "fill-current" : "text-gray-300"}`} />
+                        ))}
+                        <span className="ml-2 text-xs font-medium text-gray-500">{formatReviewDate(review.created_at)}</span>
+                      </div>
+                      {review.title ? <p className="mt-3 font-semibold text-gray-900">{review.title}</p> : null}
+                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-700">{review.content}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-xl bg-gray-50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Comments</p>
+                    <div className="mt-3 space-y-3">
+                      {review.comments.length === 0 ? (
+                        <p className="text-sm text-gray-500">No comments yet.</p>
+                      ) : (
+                        review.comments.map((comment) => (
+                          <div key={comment.id} className="rounded-xl border border-gray-200 bg-white px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-gray-900">{comment.author_name}</p>
+                                <span className="text-xs text-gray-500">{formatReviewDate(comment.created_at)}</span>
+                              </div>
+                              {comment.is_admin_reply ? (
+                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Admin reply</span>
+                              ) : null}
+                              {comment.is_owner ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setCommentEditDrafts((prev) => ({ ...prev, [comment.id]: comment.content }));
+                                    }}
+                                    className="text-xs font-semibold text-primary hover:text-primary-hover"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeComment(comment.id)}
+                                    disabled={commentSubmittingId === comment.id}
+                                    className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-60"
+                                  >
+                                    {commentSubmittingId === comment.id ? "Deleting..." : "Delete"}
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                            {editingCommentId === comment.id ? (
+                              <div className="mt-2 space-y-2">
+                                <textarea
+                                  value={commentEditDrafts[comment.id] || ""}
+                                  onChange={(event) =>
+                                    setCommentEditDrafts((prev) => ({ ...prev, [comment.id]: event.target.value }))
+                                  }
+                                  className="min-h-24 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => submitCommentEdit(comment.id)}
+                                    disabled={commentSubmittingId === comment.id}
+                                    className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-black disabled:opacity-60"
+                                  >
+                                    {commentSubmittingId === comment.id ? "Saving..." : "Save"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingCommentId(null)}
+                                    className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-sm text-gray-700">{comment.content}</p>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {isAuthenticated ? (
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          value={commentDrafts[review.id] || ""}
+                          onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))}
+                          placeholder="Add a comment to this review"
+                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => submitComment(review.id)}
+                          disabled={commentSubmittingId === review.id}
+                          className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
+                        >
+                          {commentSubmittingId === review.id ? "Posting..." : "Comment"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
 
         {relatedProducts.length > 0 ? (
           <section className="mt-10">

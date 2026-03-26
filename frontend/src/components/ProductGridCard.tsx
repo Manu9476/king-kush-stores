@@ -34,15 +34,6 @@ function getProductBadge(product: Product, fallbackBadge: string | undefined): s
   return "Trending";
 }
 
-function getProductRating(productId: number): number {
-  const value = 3.8 + ((productId * 37) % 12) / 10;
-  return Math.min(4.9, Math.max(3.8, value));
-}
-
-function getProductReviewCount(productId: number): number {
-  return 10 + ((productId * 29) % 190);
-}
-
 function getImageSrc(product: Product): string {
   if (product.image?.trim()) return product.image;
   if (Array.isArray(product.images) && product.images.length > 0 && product.images[0]?.image) return product.images[0].image;
@@ -70,8 +61,8 @@ export default function ProductGridCard({ product, badgeText, onOpen }: ProductG
 
   const routeSegment = encodeURIComponent(String(product.slug || product.id));
   const productHref = `/product/${routeSegment}`;
-  const rating = useMemo(() => getProductRating(product.id), [product.id]);
-  const reviewCount = useMemo(() => getProductReviewCount(product.id), [product.id]);
+  const rating = useMemo(() => Number(product.rating_average || 0), [product.rating_average]);
+  const reviewCount = useMemo(() => Number(product.review_count || 0), [product.review_count]);
   const roundedRating = Math.round(rating);
   const effectivePrice = getUnitAwareEffectivePrice(product, selectedOptionId);
   const originalPrice = getUnitAwareOriginalPrice(product, selectedOptionId);

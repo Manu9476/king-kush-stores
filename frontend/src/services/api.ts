@@ -315,6 +315,53 @@ export interface AdminCategoryPayload {
     parent?: number | null;
 }
 
+export interface ProductReviewComment {
+    id: number;
+    author_name: string;
+    content: string;
+    is_approved: boolean;
+    is_admin_reply: boolean;
+    created_at: string;
+    updated_at: string;
+    is_owner: boolean;
+}
+
+export interface ProductReview {
+    id: number;
+    author_name: string;
+    rating: number;
+    title: string;
+    content: string;
+    is_verified_purchase: boolean;
+    is_approved: boolean;
+    is_featured: boolean;
+    is_seeded: boolean;
+    created_at: string;
+    updated_at: string;
+    comments: ProductReviewComment[];
+    is_owner: boolean;
+}
+
+export interface ProductReviewListResponse {
+    summary: {
+        average_rating: number;
+        review_count: number;
+    };
+    can_review: boolean;
+    user_review: ProductReview | null;
+    items: ProductReview[];
+}
+
+export interface AdminProductReview extends ProductReview {
+    product: {
+        id: number;
+        title: string;
+        slug: string;
+        vendor_name: string;
+    };
+    user_email: string;
+}
+
 export interface VendorProduct {
     id: number;
     vendor_profile_id: number;
@@ -1403,6 +1450,8 @@ export async function getProducts(): Promise<Product[]> {
                 product.stock_unit_label = product.stock_unit_label || "unit";
                 product.auto_price_calculation = product.auto_price_calculation !== false;
                 product.sale_options = Array.isArray(product.sale_options) ? product.sale_options : [];
+                product.rating_average = Number(product.rating_average || 0);
+                product.review_count = Number(product.review_count || 0);
                 if (product.default_sale_option_id == null && product.sale_options.length > 0) {
                     const explicitDefault = product.sale_options.find((row: any) => row.is_default);
                     product.default_sale_option_id = explicitDefault?.id ?? product.sale_options[0]?.id ?? null;
@@ -1460,6 +1509,8 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
         product.stock_unit_label = product.stock_unit_label || "unit";
         product.auto_price_calculation = product.auto_price_calculation !== false;
         product.sale_options = Array.isArray(product.sale_options) ? product.sale_options : [];
+        product.rating_average = Number(product.rating_average || 0);
+        product.review_count = Number(product.review_count || 0);
         if (product.default_sale_option_id == null && product.sale_options.length > 0) {
             const explicitDefault = product.sale_options.find((row: any) => row.is_default);
             product.default_sale_option_id = explicitDefault?.id ?? product.sale_options[0]?.id ?? null;
@@ -1481,6 +1532,138 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
         return product as Product;
     } catch {
         return null;
+    }
+}
+
+export async function getProductReviews(productId: number): Promise<ProductReviewListResponse> {
+    const response = await requestWithApiBaseFallback(
+        `/products/${productId}/reviews/`,
+        {
+            method: "GET",
+            cache: "no-store",
+        },
+        null,
+        true,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to fetch product reviews."));
+    }
+    return await response.json();
+}
+
+export async function createProductReview(
+    token: string,
+    productId: number,
+    payload: { rating: number; title?: string; content: string },
+): Promise<ProductReview> {
+    const response = await requestWithApiBaseFallback(
+        `/products/${productId}/reviews/`,
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to submit review."));
+    }
+    return await response.json();
+}
+
+export async function updateMyProductReview(
+    token: string,
+    reviewId: number,
+    payload: Partial<{ rating: number; title: string; content: string }>,
+): Promise<ProductReview> {
+    const response = await requestWithApiBaseFallback(
+        `/products/reviews/${reviewId}/`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update review."));
+    }
+    return await response.json();
+}
+
+export async function deleteMyProductReview(token: string, reviewId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(
+        `/products/reviews/${reviewId}/`,
+        {
+            method: "DELETE",
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to delete review."));
+    }
+}
+
+export async function createProductReviewComment(
+    token: string,
+    reviewId: number,
+    payload: { content: string },
+): Promise<ProductReviewComment> {
+    const response = await requestWithApiBaseFallback(
+        `/products/reviews/${reviewId}/comments/`,
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to add comment."));
+    }
+    return await response.json();
+}
+
+export async function updateMyProductReviewComment(
+    token: string,
+    commentId: number,
+    payload: { content: string },
+): Promise<ProductReviewComment> {
+    const response = await requestWithApiBaseFallback(
+        `/products/review-comments/${commentId}/`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update comment."));
+    }
+    return await response.json();
+}
+
+export async function deleteMyProductReviewComment(token: string, commentId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(
+        `/products/review-comments/${commentId}/`,
+        {
+            method: "DELETE",
+        },
+        token,
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to delete comment."));
     }
 }
 
@@ -2860,6 +3043,97 @@ export async function importAdminProductsBulk(
         throw new Error(extractApiErrorMessage(errorData, "Admin bulk import failed."));
     }
     return await response.json();
+}
+
+export async function getAdminProductReviews(
+    token: string,
+    query: string = "",
+    statusFilter: string = "",
+): Promise<AdminProductReview[]> {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (statusFilter.trim()) params.set("status", statusFilter.trim());
+    const response = await requestWithApiBaseFallback(
+        `/products/admin/reviews/${params.toString() ? `?${params.toString()}` : ""}`,
+        {
+            method: "GET",
+            cache: "no-store",
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to fetch product reviews."));
+    }
+    return await response.json();
+}
+
+export async function updateAdminProductReview(
+    token: string,
+    reviewId: number,
+    payload: Partial<{ is_approved: boolean; is_featured: boolean }>,
+): Promise<AdminProductReview> {
+    const response = await requestWithApiBaseFallback(
+        `/products/admin/reviews/${reviewId}/`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update product review."));
+    }
+    return await response.json();
+}
+
+export async function deleteAdminProductReview(token: string, reviewId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(
+        `/products/admin/reviews/${reviewId}/`,
+        {
+            method: "DELETE",
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to delete product review."));
+    }
+}
+
+export async function updateAdminProductReviewComment(
+    token: string,
+    commentId: number,
+    payload: Partial<{ is_approved: boolean }>,
+): Promise<ProductReviewComment> {
+    const response = await requestWithApiBaseFallback(
+        `/products/admin/review-comments/${commentId}/`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to update review comment."));
+    }
+    return await response.json();
+}
+
+export async function deleteAdminProductReviewComment(token: string, commentId: number): Promise<void> {
+    const response = await requestWithApiBaseFallback(
+        `/products/admin/review-comments/${commentId}/`,
+        {
+            method: "DELETE",
+        },
+        token,
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(extractApiErrorMessage(errorData, "Failed to delete review comment."));
+    }
 }
 
 export async function getVendorOrders(token: string): Promise<VendorOrderRow[]> {

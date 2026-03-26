@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Avg, Count, Q
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -15,12 +16,29 @@ from users.vendor_profile_utils import get_user_vendor_profile
 
 from promotions.services import attach_live_offers_to_products
 
-from .models import Category, Product, ProductImage
-from .serializers import CategorySerializer, ProductSerializer, VendorProductSerializer
+from .models import Category, Product, ProductImage, ProductReview, ProductReviewComment
+from .serializers import (
+    CategorySerializer,
+    ProductReviewAdminUpdateSerializer,
+    ProductReviewCommentAdminUpdateSerializer,
+    ProductReviewCommentCreateSerializer,
+    ProductReviewCommentSerializer,
+    ProductReviewCreateSerializer,
+    ProductReviewSerializer,
+    ProductSerializer,
+    VendorProductSerializer,
+)
 
 ALLOWED_IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 MAX_GALLERY_IMAGES = 6
+
+
+def _with_review_summary(queryset):
+    return queryset.annotate(
+        approved_review_count=Count("reviews", filter=Q(reviews__is_approved=True), distinct=True),
+        approved_rating_average=Avg("reviews__rating", filter=Q(reviews__is_approved=True)),
+    )
 
 
 def _validate_product_image(file_obj):
@@ -102,7 +120,7 @@ def _normalize_product_payload_dict(raw_data):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_products(request):
-    products = Product.objects.select_related("vendor", "vendor__user", "category").all()
+    products = _with_review_summary(Product.objects.select_related("vendor", "vendor__user", "category").all())
     user = request.user
 
     is_admin = bool(user and user.is_authenticated and user.role == "admin" and has_admin_permission(user, "products.view"))
@@ -118,7 +136,7 @@ def get_products(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_product(request, pk):
-    products = Product.objects.select_related("vendor", "vendor__user", "category").all()
+    products = _with_review_summary(Product.objects.select_related("vendor", "vendor__user", "category").all())
     try:
         if str(pk).isdigit():
             product = products.get(id=pk)
@@ -158,6 +176,164 @@ def get_categories(request):
     categories = Category.objects.all().order_by("name")
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+def _get_review_eligible_order_item(user, product: Product):
+    if not getattr(user, "is_authenticated", False) or getattr(user, "role", "") != "customer":
+        return None
+    return (
+        OrderItem.objects.filter(
+            order__user=user,
+            product=product,
+        )
+        .filter(Q(order__is_paid=True) | Q(order__status="Delivered"))
+        .select_related("order")
+        .order_by("-order__created_at")
+        .first()
+    )
+
+
+@api_view(["GET", "POST"])
+@permission_classes([AllowAny])
+def product_reviews(request, product_id: int):
+    try:
+        product = _with_review_summary(
+            Product.objects.select_related("vendor", "vendor__user", "category")
+        ).get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    is_admin = bool(user and user.is_authenticated and user.role == "admin" and has_admin_permission(user, "products.view"))
+    vendor_profile = get_user_vendor_profile(user)
+    is_owner_vendor = bool(
+        user and user.is_authenticated and user.role == "vendor" and vendor_profile and product.vendor_id == vendor_profile.id
+    )
+    if not (is_admin or is_owner_vendor):
+        if not product.is_active or product.vendor.approval_status != "approved" or not product.vendor.is_approved:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "GET":
+        reviews_qs = product.reviews.all().prefetch_related("comments")
+        if not is_admin:
+            reviews_qs = reviews_qs.filter(is_approved=True)
+        user_review = None
+        can_review = False
+        if user and user.is_authenticated:
+            user_review = reviews_qs.filter(user=user).first() if is_admin else product.reviews.filter(user=user).first()
+            can_review = bool(_get_review_eligible_order_item(user, product) and not user_review)
+        return Response(
+            {
+                "summary": {
+                    "average_rating": round(float(getattr(product, "approved_rating_average", 0) or 0), 1),
+                    "review_count": int(getattr(product, "approved_review_count", 0) or 0),
+                },
+                "can_review": can_review,
+                "user_review": ProductReviewSerializer(user_review, context={"request": request}).data if user_review else None,
+                "items": ProductReviewSerializer(
+                    reviews_qs,
+                    many=True,
+                    context={"request": request, "include_hidden_comments": is_admin},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    if not user or not user.is_authenticated:
+        return Response({"detail": "Sign in to leave a review."}, status=status.HTTP_401_UNAUTHORIZED)
+    if getattr(user, "role", "") != "customer":
+        return Response({"detail": "Only customer accounts can submit product reviews."}, status=status.HTTP_403_FORBIDDEN)
+    if ProductReview.objects.filter(product=product, user=user).exists():
+        return Response({"detail": "You have already reviewed this product."}, status=status.HTTP_400_BAD_REQUEST)
+
+    eligible_order_item = _get_review_eligible_order_item(user, product)
+    if not eligible_order_item:
+        return Response({"detail": "You can only review products you have purchased."}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = ProductReviewCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    review = ProductReview.objects.create(
+        product=product,
+        user=user,
+        order_item=eligible_order_item,
+        author_name=(f"{user.first_name} {user.last_name}".strip() or user.email.split("@")[0]),
+        rating=serializer.validated_data["rating"],
+        title=str(serializer.validated_data.get("title", "")).strip(),
+        content=serializer.validated_data["content"],
+        is_verified_purchase=True,
+        is_approved=True,
+    )
+    return Response(ProductReviewSerializer(review, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
+def product_review_detail(request, review_id: int):
+    try:
+        review = ProductReview.objects.select_related("product", "user").get(id=review_id)
+    except ProductReview.DoesNotExist:
+        return Response({"detail": "Review not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if review.user_id != request.user.id:
+        return Response({"detail": "You can only manage your own reviews."}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == "DELETE":
+        review.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ProductReviewCreateSerializer(data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    for field in ("rating", "title", "content"):
+        if field in serializer.validated_data:
+            setattr(review, field, serializer.validated_data[field])
+    review.full_clean()
+    review.save()
+    return Response(ProductReviewSerializer(review, context={"request": request}).data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def product_review_comments(request, review_id: int):
+    try:
+        review = ProductReview.objects.select_related("product").get(id=review_id, is_approved=True)
+    except ProductReview.DoesNotExist:
+        return Response({"detail": "Review not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = ProductReviewCommentCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = request.user
+    comment = ProductReviewComment.objects.create(
+        review=review,
+        user=user,
+        author_name=(f"{user.first_name} {user.last_name}".strip() or user.email.split("@")[0]),
+        content=serializer.validated_data["content"],
+        is_approved=True,
+        is_admin_reply=bool(user.role == "admin"),
+    )
+    return Response(ProductReviewCommentSerializer(comment, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
+def product_review_comment_detail(request, comment_id: int):
+    try:
+        comment = ProductReviewComment.objects.select_related("user").get(id=comment_id)
+    except ProductReviewComment.DoesNotExist:
+        return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if comment.user_id != request.user.id:
+        return Response({"detail": "You can only manage your own comments."}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == "DELETE":
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ProductReviewCommentCreateSerializer(data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    comment.content = serializer.validated_data.get("content", comment.content)
+    comment.full_clean()
+    comment.save()
+    return Response(ProductReviewCommentSerializer(comment, context={"request": request}).data, status=status.HTTP_200_OK)
 
 
 @api_view(["GET", "POST"])
@@ -360,7 +536,7 @@ def admin_products(request):
     if request.method == "GET":
         if not has_admin_permission(request.user, "products.view"):
             return Response({"detail": "Missing permission: products.view"}, status=status.HTTP_403_FORBIDDEN)
-        products = list(Product.objects.select_related("vendor", "vendor__user", "category").order_by("-created_at"))
+        products = list(_with_review_summary(Product.objects.select_related("vendor", "vendor__user", "category").order_by("-created_at")))
         attach_live_offers_to_products(products)
         serializer = ProductSerializer(products, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -511,6 +687,98 @@ def admin_product_generate_barcode(request, product_id: int):
         },
         status=status.HTTP_200_OK,
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsMarketplaceAdmin])
+def admin_product_reviews(request):
+    if not has_admin_permission(request.user, "products.view"):
+        return Response({"detail": "Missing permission: products.view"}, status=status.HTTP_403_FORBIDDEN)
+
+    queryset = ProductReview.objects.select_related("product", "user", "product__vendor").prefetch_related("comments").all()
+    status_filter = str(request.query_params.get("status", "")).strip().lower()
+    query = str(request.query_params.get("q", "")).strip()
+
+    if status_filter == "approved":
+        queryset = queryset.filter(is_approved=True)
+    elif status_filter == "hidden":
+        queryset = queryset.filter(is_approved=False)
+    elif status_filter == "featured":
+        queryset = queryset.filter(is_featured=True)
+
+    if query:
+        queryset = queryset.filter(
+            Q(product__title__icontains=query)
+            | Q(author_name__icontains=query)
+            | Q(content__icontains=query)
+            | Q(title__icontains=query)
+            | Q(user__email__icontains=query)
+        )
+
+    payload = []
+    for review in queryset.order_by("-created_at"):
+        serialized = ProductReviewSerializer(
+            review,
+            context={"request": request, "include_hidden_comments": True},
+        ).data
+        serialized["product"] = {
+            "id": review.product_id,
+            "title": review.product.title,
+            "slug": review.product.slug,
+            "vendor_name": review.product.vendor.store_name if review.product.vendor else "",
+        }
+        serialized["user_email"] = review.user.email if review.user else ""
+        payload.append(serialized)
+    return Response(payload, status=status.HTTP_200_OK)
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsAuthenticated, IsMarketplaceAdmin])
+def admin_product_review_detail(request, review_id: int):
+    try:
+        review = ProductReview.objects.get(id=review_id)
+    except ProductReview.DoesNotExist:
+        return Response({"detail": "Review not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "DELETE":
+        if not has_admin_permission(request.user, "products.delete"):
+            return Response({"detail": "Missing permission: products.delete"}, status=status.HTTP_403_FORBIDDEN)
+        review.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    if not has_admin_permission(request.user, "products.edit"):
+        return Response({"detail": "Missing permission: products.edit"}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = ProductReviewAdminUpdateSerializer(review, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(
+        ProductReviewSerializer(review, context={"request": request, "include_hidden_comments": True}).data,
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsAuthenticated, IsMarketplaceAdmin])
+def admin_product_review_comment_detail(request, comment_id: int):
+    try:
+        comment = ProductReviewComment.objects.select_related("review").get(id=comment_id)
+    except ProductReviewComment.DoesNotExist:
+        return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "DELETE":
+        if not has_admin_permission(request.user, "products.delete"):
+            return Response({"detail": "Missing permission: products.delete"}, status=status.HTTP_403_FORBIDDEN)
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    if not has_admin_permission(request.user, "products.edit"):
+        return Response({"detail": "Missing permission: products.edit"}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = ProductReviewCommentAdminUpdateSerializer(comment, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(ProductReviewCommentSerializer(comment, context={"request": request}).data, status=status.HTTP_200_OK)
 
 
 @api_view(["GET", "POST"])

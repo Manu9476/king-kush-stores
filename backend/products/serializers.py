@@ -1,12 +1,13 @@
 import copy
 from decimal import Decimal
 
+from django.db.models import Avg, Count, Q
 from rest_framework import serializers
 
 from promotions.services import build_product_promotion_payload
 from users.models import VendorProfile
 
-from .models import Category, Product, ProductImage, ProductSaleOption
+from .models import Category, Product, ProductImage, ProductReview, ProductReviewComment, ProductSaleOption
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -81,6 +82,98 @@ class ProductSaleOptionWriteSerializer(serializers.Serializer):
         return attrs
 
 
+class ProductReviewCommentSerializer(serializers.ModelSerializer):
+    is_owner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductReviewComment
+        fields = (
+            "id",
+            "author_name",
+            "content",
+            "is_approved",
+            "is_admin_reply",
+            "created_at",
+            "updated_at",
+            "is_owner",
+        )
+
+    def get_is_owner(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and obj.user_id and obj.user_id == user.id)
+
+
+class ProductReviewSerializer(serializers.ModelSerializer):
+    comments = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductReview
+        fields = (
+            "id",
+            "author_name",
+            "rating",
+            "title",
+            "content",
+            "is_verified_purchase",
+            "is_approved",
+            "is_featured",
+            "is_seeded",
+            "created_at",
+            "updated_at",
+            "comments",
+            "is_owner",
+        )
+
+    def get_comments(self, obj):
+        request = self.context.get("request")
+        include_hidden = bool(self.context.get("include_hidden_comments"))
+        comments_qs = obj.comments.all()
+        if not include_hidden:
+            comments_qs = comments_qs.filter(is_approved=True)
+        return ProductReviewCommentSerializer(comments_qs, many=True, context={"request": request}).data
+
+    def get_is_owner(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and obj.user_id and obj.user_id == user.id)
+
+
+class ProductReviewCreateSerializer(serializers.Serializer):
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    title = serializers.CharField(max_length=180, required=False, allow_blank=True)
+    content = serializers.CharField()
+
+    def validate_content(self, value):
+        cleaned = str(value or "").strip()
+        if len(cleaned) < 8:
+            raise serializers.ValidationError("Review content should be at least 8 characters.")
+        return cleaned
+
+
+class ProductReviewCommentCreateSerializer(serializers.Serializer):
+    content = serializers.CharField()
+
+    def validate_content(self, value):
+        cleaned = str(value or "").strip()
+        if len(cleaned) < 2:
+            raise serializers.ValidationError("Comment content cannot be empty.")
+        return cleaned
+
+
+class ProductReviewAdminUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductReview
+        fields = ("is_approved", "is_featured")
+
+
+class ProductReviewCommentAdminUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductReviewComment
+        fields = ("is_approved",)
+
+
 SALE_TYPE_UNIT_PRESETS = {
     "single_item": {"item", "unit", "piece"},
     "piece_based": {"piece", "pieces", "item", "items", "egg", "eggs", "pc", "pcs", "unit", "dozen", "crate"},
@@ -153,6 +246,8 @@ class ProductSerializer(serializers.ModelSerializer):
     promotion_badge = serializers.SerializerMethodField()
     promotion_ends_at = serializers.SerializerMethodField()
     urgency_text = serializers.SerializerMethodField()
+    rating_average = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -175,6 +270,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "promotion_badge",
             "promotion_ends_at",
             "urgency_text",
+            "rating_average",
+            "review_count",
             "stock",
             "sale_type",
             "base_unit_label",
@@ -244,6 +341,18 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_urgency_text(self, obj):
         return self._promotion_payload(obj)["urgency_text"]
+
+    def get_rating_average(self, obj):
+        annotated = getattr(obj, "approved_rating_average", None)
+        if annotated is None:
+            annotated = obj.reviews.filter(is_approved=True).aggregate(avg=Avg("rating")).get("avg")
+        return round(float(annotated or 0), 1)
+
+    def get_review_count(self, obj):
+        annotated = getattr(obj, "approved_review_count", None)
+        if annotated is None:
+            annotated = obj.reviews.filter(is_approved=True).aggregate(total=Count("id")).get("total")
+        return int(annotated or 0)
 
 
 class VendorProductSerializer(serializers.ModelSerializer):

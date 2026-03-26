@@ -1,6 +1,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 import random
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
@@ -188,3 +189,81 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.title}"
+
+
+class ProductReview(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product_reviews",
+    )
+    order_item = models.ForeignKey(
+        "orders.OrderItem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product_reviews",
+    )
+    author_name = models.CharField(max_length=180)
+    rating = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=180, blank=True)
+    content = models.TextField()
+    is_verified_purchase = models.BooleanField(default=False, db_index=True)
+    is_approved = models.BooleanField(default=True, db_index=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    is_seeded = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-is_featured", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "user"],
+                condition=models.Q(user__isnull=False),
+                name="uniq_product_review_per_user",
+            )
+        ]
+
+    def clean(self):
+        if not 1 <= int(self.rating or 0) <= 5:
+            raise ValidationError({"rating": "Rating must be between 1 and 5."})
+        if not str(self.author_name or "").strip():
+            raise ValidationError({"author_name": "Author name is required."})
+        if not str(self.content or "").strip():
+            raise ValidationError({"content": "Review content is required."})
+
+    def __str__(self):
+        return f"{self.product.title} review by {self.author_name}"
+
+
+class ProductReviewComment(models.Model):
+    review = models.ForeignKey(ProductReview, on_delete=models.CASCADE, related_name="comments")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product_review_comments",
+    )
+    author_name = models.CharField(max_length=180)
+    content = models.TextField()
+    is_approved = models.BooleanField(default=True, db_index=True)
+    is_admin_reply = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("created_at",)
+
+    def clean(self):
+        if not str(self.author_name or "").strip():
+            raise ValidationError({"author_name": "Author name is required."})
+        if not str(self.content or "").strip():
+            raise ValidationError({"content": "Comment content is required."})
+
+    def __str__(self):
+        return f"Comment on review #{self.review_id} by {self.author_name}"

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, ProductImage, ProductSaleOption
+from .models import Category, Product, ProductImage, ProductReview, ProductReviewComment, ProductSaleOption
 
 class ProductImageInline(admin.TabularInline):
     """
@@ -24,6 +24,13 @@ class ProductSaleOptionInline(admin.TabularInline):
         "is_default",
         "is_active",
     )
+
+
+class ProductReviewCommentInline(admin.TabularInline):
+    model = ProductReviewComment
+    extra = 0
+    fields = ("author_name", "content", "is_approved", "is_admin_reply", "created_at")
+    readonly_fields = ("created_at",)
 
 
 class ProductAdmin(admin.ModelAdmin):
@@ -51,3 +58,28 @@ class CategoryAdmin(admin.ModelAdmin):
 # Register the models
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
+
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = (
+        "product",
+        "author_name",
+        "rating",
+        "is_verified_purchase",
+        "is_approved",
+        "is_featured",
+        "created_at",
+    )
+    list_filter = ("rating", "is_verified_purchase", "is_approved", "is_featured", "is_seeded", "created_at")
+    search_fields = ("product__title", "author_name", "content", "title", "user__email")
+    readonly_fields = ("created_at", "updated_at")
+    inlines = [ProductReviewCommentInline]
+
+
+@admin.register(ProductReviewComment)
+class ProductReviewCommentAdmin(admin.ModelAdmin):
+    list_display = ("review", "author_name", "is_approved", "is_admin_reply", "created_at")
+    list_filter = ("is_approved", "is_admin_reply", "created_at")
+    search_fields = ("review__product__title", "author_name", "content", "user__email")
+    readonly_fields = ("created_at", "updated_at")
