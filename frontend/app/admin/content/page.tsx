@@ -89,7 +89,26 @@ function personToForm(item: PersonProfileData): PersonProfilePayload {
 }
 
 function companyToForm(item: CompanyProfileData): CompanyProfilePayload {
-  return { ...emptyCompany, ...item };
+  return {
+    company_name: item.company_name,
+    description: item.description || "",
+    mission_vision: item.mission_vision || "",
+    email: item.email || "",
+    phone_number: item.phone_number || "",
+    website_url: item.website_url || "",
+    address: item.address || "",
+    location: item.location || "",
+    year_founded: item.year_founded ?? null,
+    category: item.category || "",
+    facebook_url: item.facebook_url || "",
+    instagram_url: item.instagram_url || "",
+    x_url: item.x_url || "",
+    linkedin_url: item.linkedin_url || "",
+    youtube_url: item.youtube_url || "",
+    tiktok_url: item.tiktok_url || "",
+    is_published: item.is_published,
+    is_active: item.is_active,
+  };
 }
 
 export default function AdminContentPage() {

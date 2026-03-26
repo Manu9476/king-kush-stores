@@ -1,4 +1,5 @@
 from django.db import migrations
+from django.utils.text import slugify
 
 
 def seed_departments(apps, schema_editor):
@@ -12,7 +13,14 @@ def seed_departments(apps, schema_editor):
         ("Other", 99),
     ]
     for name, order in defaults:
-        Department.objects.get_or_create(name=name, defaults={"sort_order": order, "is_active": True})
+        Department.objects.get_or_create(
+            name=name,
+            defaults={
+                "slug": slugify(name),
+                "sort_order": order,
+                "is_active": True,
+            },
+        )
 
 
 def unseed_departments(apps, schema_editor):
