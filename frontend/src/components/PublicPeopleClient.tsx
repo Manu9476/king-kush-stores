@@ -19,11 +19,12 @@ type Props = {
 
 function PersonCard({ item, href }: { item: PersonProfileData; href: string }) {
   const image = item.profile_photo_url || FALLBACK_IMAGE;
+  const [openImage, setOpenImage] = useState(false);
   return (
     <article className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="relative h-56 overflow-hidden rounded-2xl bg-gray-100">
+      <button type="button" onClick={() => setOpenImage(true)} className="relative block h-56 w-full overflow-hidden rounded-2xl bg-gray-100">
         <Image src={image} alt={item.full_name} fill className="object-cover" />
-      </div>
+      </button>
       <p className="mt-4 text-lg font-black text-gray-900">{item.full_name}</p>
       <p className="mt-1 text-sm font-semibold text-primary">{item.role_title}</p>
       <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">{item.bio || "Profile details coming soon."}</p>
@@ -35,6 +36,13 @@ function PersonCard({ item, href }: { item: PersonProfileData; href: string }) {
       <Link href={href} className="mt-5 inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover">
         View Profile
       </Link>
+      {openImage ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setOpenImage(false)}>
+          <div className="relative h-[80vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white" onClick={(event) => event.stopPropagation()}>
+            <Image src={image} alt={item.full_name} fill className="object-contain" />
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -70,19 +78,20 @@ export default function PublicPeopleClient({ mode }: Props) {
   const featured = mode === "creators" ? (data as CreatorsPageResponse | null)?.featured_creators || [] : (data as TeamPageResponse | null)?.featured_members || [];
   const items = mode === "creators" ? (data as CreatorsPageResponse | null)?.creators || [] : (data as TeamPageResponse | null)?.members || [];
   const company = mode === "creators" ? (data as CreatorsPageResponse | null)?.company : null;
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   return (
     <main className="min-h-screen bg-neutral-bg px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
         {mode === "creators" && company ? (
           <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-            <div className="relative h-64 bg-gray-100">
+            <button type="button" onClick={() => setLightboxImage(company.banner_url || FALLBACK_IMAGE)} className="relative block h-64 w-full bg-gray-100">
               <Image src={company.banner_url || FALLBACK_IMAGE} alt={company.company_name} fill className="object-cover" />
-            </div>
+            </button>
             <div className="grid gap-6 p-6 lg:grid-cols-[120px_minmax(0,1fr)] lg:p-8">
-              <div className="relative h-28 w-28 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              <button type="button" onClick={() => setLightboxImage(company.logo_url || FALLBACK_IMAGE)} className="relative h-28 w-28 overflow-hidden rounded-2xl border border-gray-200 bg-white">
                 <Image src={company.logo_url || FALLBACK_IMAGE} alt={company.company_name} fill className="object-cover" />
-              </div>
+              </button>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">My Company</p>
                 <h1 className="mt-2 text-3xl font-black text-gray-900 md:text-4xl">{company.company_name}</h1>
@@ -101,6 +110,18 @@ export default function PublicPeopleClient({ mode }: Props) {
                     </div>
                   ) : null}
                 </div>
+                {company.featured_media?.length ? (
+                  <div className="mt-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Featured Media</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      {company.featured_media.map((media) => (
+                        <button key={media.id} type="button" onClick={() => setLightboxImage(media.image_url || FALLBACK_IMAGE)} className="relative h-32 overflow-hidden rounded-2xl bg-gray-100">
+                          <Image src={media.image_url || FALLBACK_IMAGE} alt={media.caption || company.company_name} fill className="object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>
@@ -144,6 +165,13 @@ export default function PublicPeopleClient({ mode }: Props) {
           ) : null}
         </section>
       </div>
+      {lightboxImage ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightboxImage(null)}>
+          <div className="relative h-[85vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white" onClick={(event) => event.stopPropagation()}>
+            <Image src={lightboxImage} alt="Expanded media" fill className="object-contain" />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -10,6 +10,7 @@ const FALLBACK_IMAGE = "/product-placeholder.svg";
 export default function PublicProfileDetailClient({ mode, slug }: { mode: "creators" | "team"; slug: string }) {
   const [item, setItem] = useState<PersonProfileData | null>(null);
   const [error, setError] = useState("");
+  const [openImage, setOpenImage] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -34,9 +35,9 @@ export default function PublicProfileDetailClient({ mode, slug }: { mode: "creat
     <main className="min-h-screen bg-neutral-bg px-4 py-12 sm:px-8">
       <div className="mx-auto max-w-5xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="grid gap-8 md:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="relative h-80 overflow-hidden rounded-3xl bg-gray-100">
+          <button type="button" onClick={() => setOpenImage(true)} className="relative h-80 overflow-hidden rounded-3xl bg-gray-100">
             <Image src={item.profile_photo_url || FALLBACK_IMAGE} alt={item.full_name} fill className="object-cover" />
-          </div>
+          </button>
           <div>
             <Link href={mode === "creators" ? "/creators" : "/our-team"} className="text-sm font-semibold text-primary">Back</Link>
             <h1 className="mt-3 text-4xl font-black text-gray-900">{item.full_name}</h1>
@@ -54,6 +55,13 @@ export default function PublicProfileDetailClient({ mode, slug }: { mode: "creat
           </div>
         </div>
       </div>
+      {openImage ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setOpenImage(false)}>
+          <div className="relative h-[85vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white" onClick={(event) => event.stopPropagation()}>
+            <Image src={item.profile_photo_url || FALLBACK_IMAGE} alt={item.full_name} fill className="object-contain" />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
