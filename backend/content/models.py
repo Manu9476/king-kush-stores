@@ -37,6 +37,8 @@ class CompanyProfile(models.Model):
     logo = models.ImageField(upload_to="company/", blank=True, null=True)
     banner = models.ImageField(upload_to="company/", blank=True, null=True)
     description = models.TextField(blank=True)
+    mission = models.TextField(blank=True)
+    vision = models.TextField(blank=True)
     mission_vision = models.TextField(blank=True)
     email = models.EmailField(blank=True)
     phone_number = models.CharField(max_length=50, blank=True)

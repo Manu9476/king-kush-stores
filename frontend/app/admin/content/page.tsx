@@ -31,7 +31,8 @@ import {
 const emptyCompany: CompanyProfilePayload = {
   company_name: "",
   description: "",
-  mission_vision: "",
+  mission: "",
+  vision: "",
   email: "",
   phone_number: "",
   website_url: "",
@@ -93,7 +94,8 @@ function companyToForm(item: CompanyProfileData): CompanyProfilePayload {
   return {
     company_name: item.company_name,
     description: item.description || "",
-    mission_vision: item.mission_vision || "",
+    mission: item.mission || item.mission_vision || "",
+    vision: item.vision || "",
     email: item.email || "",
     phone_number: item.phone_number || "",
     website_url: item.website_url || "",
@@ -405,7 +407,10 @@ export default function AdminContentPage() {
                   <input value={companyForm.address || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, address: e.target.value }))} placeholder="Address" className="rounded-xl border border-gray-300 px-4 py-3 text-sm md:col-span-2" />
                 </div>
                 <textarea value={companyForm.description || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, description: e.target.value }))} placeholder="Company description" className="min-h-28 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm" />
-                <textarea value={companyForm.mission_vision || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, mission_vision: e.target.value }))} placeholder="Mission / vision" className="min-h-24 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm" />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <textarea value={companyForm.mission || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, mission: e.target.value }))} placeholder="Mission" className="min-h-24 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm" />
+                  <textarea value={companyForm.vision || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, vision: e.target.value }))} placeholder="Vision" className="min-h-24 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm" />
+                </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <input value={companyForm.facebook_url || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, facebook_url: e.target.value }))} placeholder="Facebook URL" className="rounded-xl border border-gray-300 px-4 py-3 text-sm" />
                   <input value={companyForm.instagram_url || ""} onChange={(e) => setCompanyForm((p) => ({ ...p, instagram_url: e.target.value }))} placeholder="Instagram URL" className="rounded-xl border border-gray-300 px-4 py-3 text-sm" />

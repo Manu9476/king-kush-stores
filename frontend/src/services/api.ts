@@ -4599,6 +4599,8 @@ export interface CompanyProfileData {
     banner: string | null;
     banner_url: string;
     description: string;
+    mission: string;
+    vision: string;
     mission_vision: string;
     email: string;
     phone_number: string;
@@ -4661,7 +4663,8 @@ export interface TeamPageResponse {
 export interface CompanyProfilePayload {
     company_name: string;
     description?: string;
-    mission_vision?: string;
+    mission?: string;
+    vision?: string;
     email?: string;
     phone_number?: string;
     website_url?: string;
@@ -4713,7 +4716,8 @@ function appendCompanyProfilePayload(formData: FormData, payload: Partial<Compan
     const textFields: Array<keyof CompanyProfilePayload> = [
         "company_name",
         "description",
-        "mission_vision",
+        "mission",
+        "vision",
         "email",
         "phone_number",
         "website_url",

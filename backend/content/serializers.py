@@ -39,6 +39,8 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             "banner",
             "banner_url",
             "description",
+            "mission",
+            "vision",
             "mission_vision",
             "email",
             "phone_number",

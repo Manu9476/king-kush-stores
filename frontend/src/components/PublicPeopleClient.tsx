@@ -87,7 +87,20 @@ export default function PublicPeopleClient({ mode }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">My Company</p>
                 <h1 className="mt-2 text-3xl font-black text-gray-900 md:text-4xl">{company.company_name}</h1>
                 <p className="mt-3 text-sm leading-7 text-gray-600">{company.description || "Company profile coming soon."}</p>
-                <p className="mt-4 text-sm leading-7 text-gray-600">{company.mission_vision}</p>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  {company.mission ? (
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Mission</p>
+                      <p className="mt-2 text-sm leading-7 text-gray-600">{company.mission}</p>
+                    </div>
+                  ) : null}
+                  {company.vision ? (
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Vision</p>
+                      <p className="mt-2 text-sm leading-7 text-gray-600">{company.vision}</p>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </section>
