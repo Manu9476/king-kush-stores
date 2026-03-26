@@ -98,6 +98,28 @@ export default function PublicPeopleClient({ mode }: Props) {
                 <p className="mt-3 text-sm leading-7 text-gray-600">{company.description || "Company profile coming soon."}</p>
                 {(company.email || company.phone_number || company.website_url || company.address || company.location || company.facebook_url || company.instagram_url || company.x_url || company.linkedin_url || company.youtube_url || company.tiktok_url) ? (
                   <div className="mt-5 rounded-3xl border border-gray-200 bg-linear-to-br from-slate-50 via-white to-blue-50 p-5 shadow-sm">
+                    {(company.year_founded || company.category || company.location) ? (
+                      <div className="mb-5 grid gap-3 md:grid-cols-3">
+                        {company.year_founded ? (
+                          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                            <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500">Founded</span>
+                            <span className="mt-1 block text-sm font-semibold text-gray-900">{company.year_founded}</span>
+                          </div>
+                        ) : null}
+                        {company.category ? (
+                          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                            <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500">Category</span>
+                            <span className="mt-1 block text-sm font-semibold text-gray-900">{company.category}</span>
+                          </div>
+                        ) : null}
+                        {company.location ? (
+                          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                            <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500">Base</span>
+                            <span className="mt-1 block text-sm font-semibold text-gray-900">{company.location}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="grid flex-1 gap-3 md:grid-cols-2">
                         {company.email ? (
