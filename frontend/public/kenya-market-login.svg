@@ -1,0 +1,37 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#F7F4EE"/>
+  <rect y="580" width="1200" height="320" fill="#EFE2C8"/>
+  <path d="M0 630C132 588 241 566 353 574C489 583 555 648 701 645C861 642 936 555 1079 551C1122 550 1163 554 1200 564V900H0V630Z" fill="#D6B889"/>
+  <circle cx="953" cy="148" r="54" fill="#F59E0B"/>
+  <rect x="123" y="203" width="956" height="292" rx="24" fill="#0F172A"/>
+  <rect x="151" y="229" width="900" height="240" rx="18" fill="#1E3A8A"/>
+  <rect x="151" y="229" width="900" height="54" fill="#111827"/>
+  <rect x="151" y="283" width="900" height="52" fill="#BB1E10"/>
+  <rect x="151" y="335" width="900" height="54" fill="#FFFFFF"/>
+  <rect x="151" y="389" width="900" height="54" fill="#0F172A"/>
+  <path d="M596 265C628 218 651 190 663 181C676 192 700 220 733 265C699 274 677 279 663 279C649 279 626 274 596 265Z" fill="#FFFFFF"/>
+  <path d="M613 274C636 243 652 224 661 216C670 224 686 243 709 274C685 279 669 282 661 282C653 282 636 279 613 274Z" fill="#BB1E10"/>
+  <path d="M213 573C213 535 244 504 282 504H404C442 504 473 535 473 573V662H213V573Z" fill="#B45309"/>
+  <path d="M195 554L342 457L491 554H195Z" fill="#BB1E10"/>
+  <rect x="243" y="571" width="54" height="91" rx="6" fill="#7C2D12"/>
+  <rect x="315" y="571" width="54" height="54" rx="6" fill="#F7F4EE"/>
+  <rect x="387" y="571" width="54" height="54" rx="6" fill="#F7F4EE"/>
+  <path d="M519 560C519 525 547 497 582 497H700C735 497 763 525 763 560V662H519V560Z" fill="#1D4ED8"/>
+  <path d="M501 542L640 453L781 542H501Z" fill="#F59E0B"/>
+  <rect x="549" y="582" width="50" height="80" rx="6" fill="#DBEAFE"/>
+  <rect x="617" y="582" width="50" height="80" rx="6" fill="#1E40AF"/>
+  <rect x="685" y="582" width="50" height="80" rx="6" fill="#DBEAFE"/>
+  <path d="M809 563C809 526 839 496 876 496H986C1023 496 1053 526 1053 563V662H809V563Z" fill="#15803D"/>
+  <path d="M789 543L931 450L1073 543H789Z" fill="#111827"/>
+  <rect x="836" y="579" width="42" height="83" rx="6" fill="#DCFCE7"/>
+  <rect x="893" y="579" width="42" height="52" rx="6" fill="#DCFCE7"/>
+  <rect x="950" y="579" width="42" height="52" rx="6" fill="#DCFCE7"/>
+  <path d="M150 689C229 664 322 649 430 654C531 659 622 704 717 704C817 704 914 652 1047 652C1103 652 1154 658 1200 670V900H150V689Z" fill="#C79E68"/>
+  <circle cx="271" cy="731" r="20" fill="#111827"/>
+  <rect x="256" y="752" width="30" height="74" rx="14" fill="#111827"/>
+  <circle cx="930" cy="736" r="20" fill="#111827"/>
+  <rect x="915" y="757" width="30" height="69" rx="14" fill="#111827"/>
+  <rect x="98" y="94" width="360" height="88" rx="20" fill="#FFFFFF" fill-opacity="0.84"/>
+  <text x="130" y="145" fill="#0F172A" font-family="Arial, sans-serif" font-size="38" font-weight="700">Kenyan marketplace</text>
+  <text x="130" y="176" fill="#475569" font-family="Arial, sans-serif" font-size="22">Trusted vendors, local energy, national reach</text>
+</svg>
